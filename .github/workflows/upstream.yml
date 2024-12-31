@@ -44,8 +44,8 @@ jobs:
             ls -la .git
           fi
 
-      # Helper function to clone repositories with PAT
-      - name: Define helper function for cloning
+      # Step 1: Define upstream repositories and directories to sync, including helper function and its usage
+      - name: Sync from upstream repositories
         run: |
           define_clone_function() {
             local REPO_URL=$1
@@ -56,9 +56,7 @@ jobs:
             git clone --depth 1 --branch "$BRANCH" "https://${{ secrets.PERSONAL_ACCESS_TOKEN }}@$REPO_URL" "$DEST_DIR" || exit 1
           }
 
-      # Step 1: Sync from Siriling/5G-Modem-Support
-      - name: Sync from Siriling/5G-Modem-Support
-        run: |
+          # Sync from Siriling/5G-Modem-Support
           REPO_URL="github.com/Siriling/5G-Modem-Support.git"
           BRANCH="main"
           EXCLUDES="--exclude=README.md --exclude=LICENSE"
@@ -73,8 +71,7 @@ jobs:
           # Cleanup
           rm -rf "$DEST_DIR"
 
-      - name: Sync from kiddin9/kwrt-packages
-        run: |
+          # Sync from kiddin9/kwrt-packages
           REPO_URL="github.com/kiddin9/kwrt-packages.git"
           BRANCH="main"
           INCLUDE_DIRS=("shadowsocks-libev" "fullconenat-nft" "luci-app-dockerman" "dockerd" "luci-app-pptp-server" "luci-app-pppoe-relay" "luci-app-pppoe-server" "luci-app-openvpn-server" "luci-app-openvpn-client" "luci-app-ipsec-server" "luci-app-ipsec-vpnd" "luci-app-zerotier" "luci-app-einat" "openwrt-einat-ebpf")
