@@ -69,10 +69,31 @@ jobs:
             git clone --depth 1 --branch "$BRANCH" "https://${{ secrets.PERSONAL_ACCESS_TOKEN }}@$REPO_URL" "$DEST_DIR" || exit 1
           }
 
-          # Sync from Siriling/5G-Modem-Support
+          # Sync specific directories from Siriling/5G-Modem-Support
           REPO_URL="github.com/Siriling/5G-Modem-Support.git"
           BRANCH="main"
-          EXCLUDES="--exclude=README.md --exclude=LICENSE"
+          INCLUDE_DIRS=(
+            "fibocom-dial"
+            "fibocom_MHI.fibocom_QMI_WWAN"
+            "luci-app-cpe"
+            "luci-app-gobinetmodem"
+            "luci-app-hypermodem"
+            "luci-app-modem"
+            "luci-app-pcimodem"
+            "luci-app-sms-tool"
+            "luci-app-spdmodem"
+            "luci-app-usbmodem"
+            "meig-cm"
+            "meig_QMI_WWAN"
+            "quectel_Gobinet"
+            "quectel_MHI"
+            "quectel_QMI_WWAN"
+            "quectel_SRPD_PCIE"
+            "quectel_cm_5G"
+            "rooter"
+            "sendat"
+            "sms-tool"
+          )
           DEST_DIR="repos/5G-Modem-Support"
 
           # Use the helper function to clone the repository
@@ -87,8 +108,15 @@ jobs:
             ls -la "$DEST_DIR"
           fi
 
-          # Sync excluding specified files
-          rsync -av --delete-after $EXCLUDES "$DEST_DIR/" ./
+          # Sync specified directories
+          for dir in "${INCLUDE_DIRS[@]}"; do
+            if [ -d "$DEST_DIR/$dir" ]; then
+              echo "Syncing directory: $dir to ./"
+              rsync -av --delete-after "$DEST_DIR/$dir/" "./$dir/"
+            else
+              echo "Directory $dir does not exist in 5G-Modem-Support."
+            fi
+          done
 
           # Debug: Check if files were copied correctly
           echo "Files after syncing from $DEST_DIR:"
@@ -97,7 +125,7 @@ jobs:
           # Cleanup
           rm -rf "$DEST_DIR"
 
-          # Sync from kiddin9/kwrt-packages
+          # Sync from kiddin9/kwrt-packages (unchanged)
           REPO_URL="github.com/kiddin9/kwrt-packages.git"
           BRANCH="main"
           INCLUDE_DIRS=("shadowsocks-libev" "fullconenat-nft" "luci-app-dockerman" "dockerd" "luci-app-pptp-server" "luci-app-pppoe-relay" "luci-app-pppoe-server" "luci-app-openvpn-server" "luci-app-openvpn-client" "luci-app-ipsec-server" "luci-app-ipsec-vpnd" "luci-app-zerotier" "luci-app-einat" "openwrt-einat-ebpf")
