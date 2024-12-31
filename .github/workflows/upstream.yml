@@ -44,6 +44,19 @@ jobs:
             ls -la .git
           fi
 
+      # Ensure there's at least one commit in the repository
+      - name: Ensure initial commit exists
+        run: |
+          if git rev-parse --verify HEAD >/dev/null 2>&1; then
+            echo "Repository has existing commits."
+          else
+            echo "No commits found, creating an initial commit..."
+            touch README.md
+            git add README.md
+            git commit -m "Initial commit"
+            git push origin ${{ env.TARGET_BRANCH }}
+          fi
+
       # Step 1: Define upstream repositories and directories to sync, including helper function and its usage
       - name: Sync from upstream repositories
         run: |
@@ -105,19 +118,16 @@ jobs:
         run: |
           # 添加所有更改
           git add .
-          
+
           # 提交更改
           if git diff-index --quiet HEAD; then
             echo "No changes to commit."
           else
             git commit -m "Sync from multiple repos"
-            
-            # 确保本地分支正确跟踪远程分支
-            git branch --set-upstream-to=origin/${{ env.TARGET_BRANCH }} ${{ env.TARGET_BRANCH }} || true
-            
+
             # 尝试拉取最新的更改并重新基础
             git pull --rebase origin ${{ env.TARGET_BRANCH }} || true
-            
+
             # 自动解决冲突：保留远程版本
             resolve_conflicts() {
               local files_to_resolve=("README.md" "LICENSE")
@@ -130,7 +140,7 @@ jobs:
                 fi
               done
             }
-            
+
             # 检查是否有未解决的冲突
             if git ls-files --unmerged | grep -q .; then
               echo "Conflicts detected, attempting to resolve..."
@@ -140,7 +150,7 @@ jobs:
             else
               echo "No conflicts detected."
             fi
-            
+
             # 推送更改
             git push origin ${{ env.TARGET_BRANCH }}
           fi
