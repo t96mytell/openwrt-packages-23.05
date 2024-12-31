@@ -45,48 +45,44 @@ jobs:
           fi
 
       # Step 1: Define upstream repositories and directories to sync
-      - name: Define Upstream Repositories
+      - name: Sync from Siriling/5G-Modem-Support
         run: |
-          declare -A REPOS=(
-            ["https://github.com/kiddin9/kwrt-packages.git"]="main shadowsocks-libev fullconenat-nft luci-app-dockerman dockerd luci-app-pptp-server luci-app-pppoe-relay luci-app-pppoe-server luci-app-openvpn-server luci-app-openvpn-client luci-app-ipsec-server luci-app-ipsec-vpnd luci-app-zerotier luci-app-einat openwrt-einat-ebpf"
-            ["https://github.com/Siriling/5G-Modem-Support.git"]="main exclude/README.md exclude/LICENSE"
-          )
-          echo "${REPOS[@]}" > repos.txt
+          REPO_URL="https://github.com/Siriling/5G-Modem-Support.git"
+          BRANCH="main"
+          EXCLUDES="--exclude=README.md --exclude=LICENSE"
 
-      # Step 2: Sync specified directories from upstream repositories
-      - name: Sync Repositories
+          # Clone the repository
+          git clone --depth 1 --branch "$BRANCH" "$REPO_URL" "repos/5G-Modem-Support" || exit 1
+
+          # Sync excluding specified files
+          rsync -av --delete-after $EXCLUDES "repos/5G-Modem-Support/" ./
+
+          # Cleanup
+          rm -rf "repos/5G-Modem-Support"
+
+      - name: Sync from kiddin9/kwrt-packages
         run: |
-          while IFS='=' read -r repo config; do
-            IFS=' ' read -r branch includes <<< "$config"
-            dir=$(basename "$repo" .git)
-            echo "Cloning $repo at branch $branch into $dir"
-            git clone --depth 1 --branch "$branch" "$repo" "repos/$dir" || exit 1
-            
-            # 列出仓库内容以验证
-            echo "Content of $dir:"
-            ls -la "repos/$dir"
+          REPO_URL="https://github.com/kiddin9/kwrt-packages.git"
+          BRANCH="main"
+          INCLUDE_DIRS=("shadowsocks-libev" "fullconenat-nft" "luci-app-dockerman" "dockerd" "luci-app-pptp-server" "luci-app-pppoe-relay" "luci-app-pppoe-server" "luci-app-openvpn-server" "luci-app-openvpn-client" "luci-app-ipsec-server" "luci-app-ipsec-vpnd" "luci-app-zerotier" "luci-app-einat" "openwrt-einat-ebpf")
 
-            if [[ "$includes" != *"exclude/"* ]]; then
-              dirs_to_sync=$(echo "$includes" | tr ' ' '\n')
-              for dir_to_sync in $dirs_to_sync; do
-                if [ -d "repos/$dir/include/$dir_to_sync" ]; then
-                  echo "Syncing directory: include/$dir_to_sync to ./"
-                  rsync -av --delete-after "repos/$dir/include/$dir_to_sync/" "./include/"
-                else
-                  echo "Directory include/$dir_to_sync does not exist in $dir."
-                fi
-              done
-            elif [[ "$includes" == *"exclude/"* ]]; then
-              excludes=$(echo "$includes" | tr ',' '\n' | sed 's/exclude\//--exclude=/' | tr '\n' ' ')
-              echo "Syncing entire repository $dir to ./ with exclusions: $excludes"
-              rsync -av $excludes --delete-after "repos/$dir/" ./
+          # Clone the repository
+          git clone --depth 1 --branch "$BRANCH" "$REPO_URL" "repos/kwrt-packages" || exit 1
+
+          # Sync specified directories
+          for dir in "${INCLUDE_DIRS[@]}"; do
+            if [ -d "repos/kwrt-packages/include/$dir" ]; then
+              echo "Syncing directory: include/$dir to ./include/"
+              rsync -av --delete-after "repos/kwrt-packages/include/$dir/" "./include/"
+            else
+              echo "Directory include/$dir does not exist in kwrt-packages."
             fi
-            
-            echo "After rsync, content of current directory:"
-            ls -la
-          done < repos.txt
+          done
 
-      # Step 3: Commit and Push Changes to the Target Repository using the GitHub token
+          # Cleanup
+          rm -rf "repos/kwrt-packages"
+
+      # Step 2: Commit and Push Changes to the Target Repository using the GitHub token
       - name: Commit and Push Changes
         run: |
           # 添加更多调试信息
