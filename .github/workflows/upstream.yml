@@ -47,14 +47,14 @@ jobs:
       # Helper function to clone repositories with PAT
       - name: Define helper function for cloning
         run: |
-          echo "define_clone_function() {
-            local REPO_URL=\$1
-            local BRANCH=\$2
-            local DEST_DIR=\$3
+          define_clone_function() {
+            local REPO_URL=$1
+            local BRANCH=$2
+            local DEST_DIR=$3
 
             # Ensure the URL does not start with https:// twice
-            git clone --depth 1 --branch \$BRANCH \"https://${{ secrets.PERSONAL_ACCESS_TOKEN }}@${REPO_URL}\" \$DEST_DIR || exit 1
-          }" >> \$GITHUB_ENV
+            git clone --depth 1 --branch "$BRANCH" "https://${{ secrets.PERSONAL_ACCESS_TOKEN }}@$REPO_URL" "$DEST_DIR" || exit 1
+          }
 
       # Step 1: Sync from Siriling/5G-Modem-Support
       - name: Sync from Siriling/5G-Modem-Support
@@ -62,37 +62,39 @@ jobs:
           REPO_URL="github.com/Siriling/5G-Modem-Support.git"
           BRANCH="main"
           EXCLUDES="--exclude=README.md --exclude=LICENSE"
+          DEST_DIR="repos/5G-Modem-Support"
 
           # Use the helper function to clone the repository
-          define_clone_function \"$REPO_URL\" \"$BRANCH\" \"repos/5G-Modem-Support\"
+          define_clone_function "$REPO_URL" "$BRANCH" "$DEST_DIR"
 
           # Sync excluding specified files
-          rsync -av --delete-after $EXCLUDES "repos/5G-Modem-Support/" ./
+          rsync -av --delete-after $EXCLUDES "$DEST_DIR/" ./
 
           # Cleanup
-          rm -rf "repos/5G-Modem-Support"
+          rm -rf "$DEST_DIR"
 
       - name: Sync from kiddin9/kwrt-packages
         run: |
           REPO_URL="github.com/kiddin9/kwrt-packages.git"
           BRANCH="main"
           INCLUDE_DIRS=("shadowsocks-libev" "fullconenat-nft" "luci-app-dockerman" "dockerd" "luci-app-pptp-server" "luci-app-pppoe-relay" "luci-app-pppoe-server" "luci-app-openvpn-server" "luci-app-openvpn-client" "luci-app-ipsec-server" "luci-app-ipsec-vpnd" "luci-app-zerotier" "luci-app-einat" "openwrt-einat-ebpf")
+          DEST_DIR="repos/kwrt-packages"
 
           # Use the helper function to clone the repository
-          define_clone_function \"$REPO_URL\" \"$BRANCH\" \"repos/kwrt-packages\"
+          define_clone_function "$REPO_URL" "$BRANCH" "$DEST_DIR"
 
           # Sync specified directories
           for dir in "${INCLUDE_DIRS[@]}"; do
-            if [ -d "repos/kwrt-packages/$dir" ]; then
+            if [ -d "$DEST_DIR/$dir" ]; then
               echo "Syncing directory: $dir to ./"
-              rsync -av --delete-after "repos/kwrt-packages/$dir/" "./$dir/"
+              rsync -av --delete-after "$DEST_DIR/$dir/" "./$dir/"
             else
               echo "Directory $dir does not exist in kwrt-packages."
             fi
           done
 
           # Cleanup
-          rm -rf "repos/kwrt-packages"
+          rm -rf "$DEST_DIR"
 
       # Step 2: Configure Git Credentials with PAT
       - name: Configure Git Credentials
