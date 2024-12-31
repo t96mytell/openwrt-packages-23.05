@@ -44,15 +44,27 @@ jobs:
             ls -la .git
           fi
 
-      # Step 1: Define upstream repositories and directories to sync
+      # Helper function to clone repositories with PAT
+      - name: Define helper function for cloning
+        run: |
+          echo "define_clone_function() {
+            local REPO_URL=\$1
+            local BRANCH=\$2
+            local DEST_DIR=\$3
+
+            # Ensure the URL does not start with https:// twice
+            git clone --depth 1 --branch \$BRANCH \"https://${{ secrets.PERSONAL_ACCESS_TOKEN }}@${REPO_URL}\" \$DEST_DIR || exit 1
+          }" >> \$GITHUB_ENV
+
+      # Step 1: Sync from Siriling/5G-Modem-Support
       - name: Sync from Siriling/5G-Modem-Support
         run: |
-          REPO_URL="https://github.com/Siriling/5G-Modem-Support.git"
+          REPO_URL="github.com/Siriling/5G-Modem-Support.git"
           BRANCH="main"
           EXCLUDES="--exclude=README.md --exclude=LICENSE"
 
-          # Clone the repository with PAT
-          git clone --depth 1 --branch "$BRANCH" "https://${{ secrets.PERSONAL_ACCESS_TOKEN }}@${REPO_URL}" "repos/5G-Modem-Support" || exit 1
+          # Use the helper function to clone the repository
+          define_clone_function \"$REPO_URL\" \"$BRANCH\" \"repos/5G-Modem-Support\"
 
           # Sync excluding specified files
           rsync -av --delete-after $EXCLUDES "repos/5G-Modem-Support/" ./
@@ -62,20 +74,20 @@ jobs:
 
       - name: Sync from kiddin9/kwrt-packages
         run: |
-          REPO_URL="https://github.com/kiddin9/kwrt-packages.git"
+          REPO_URL="github.com/kiddin9/kwrt-packages.git"
           BRANCH="main"
           INCLUDE_DIRS=("shadowsocks-libev" "fullconenat-nft" "luci-app-dockerman" "dockerd" "luci-app-pptp-server" "luci-app-pppoe-relay" "luci-app-pppoe-server" "luci-app-openvpn-server" "luci-app-openvpn-client" "luci-app-ipsec-server" "luci-app-ipsec-vpnd" "luci-app-zerotier" "luci-app-einat" "openwrt-einat-ebpf")
 
-          # Clone the repository with PAT
-          git clone --depth 1 --branch "$BRANCH" "https://${{ secrets.PERSONAL_ACCESS_TOKEN }}@${REPO_URL}" "repos/kwrt-packages" || exit 1
+          # Use the helper function to clone the repository
+          define_clone_function \"$REPO_URL\" \"$BRANCH\" \"repos/kwrt-packages\"
 
           # Sync specified directories
           for dir in "${INCLUDE_DIRS[@]}"; do
-            if [ -d "repos/kwrt-packages/include/$dir" ]; then
-              echo "Syncing directory: include/$dir to ./include/"
-              rsync -av --delete-after "repos/kwrt-packages/include/$dir/" "./include/"
+            if [ -d "repos/kwrt-packages/$dir" ]; then
+              echo "Syncing directory: $dir to ./"
+              rsync -av --delete-after "repos/kwrt-packages/$dir/" "./$dir/"
             else
-              echo "Directory include/$dir does not exist in kwrt-packages."
+              echo "Directory $dir does not exist in kwrt-packages."
             fi
           done
 
@@ -87,7 +99,7 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git remote set-url origin https://${{ secrets.PERSONAL_ACCESS_TOKEN }}@github.com/${{ env.TARGET_REPO }}.git
+          git remote set-url origin "https://${{ secrets.PERSONAL_ACCESS_TOKEN }}@github.com/${{ env.TARGET_REPO }}.git"
 
       # Step 3: Commit and Push Changes to the Target Repository using the Personal Access Token
       - name: Commit and Push Changes
