@@ -1,0 +1,146 @@
+name: Sync and Merge Upstream Repositories
+
+on:
+  workflow_dispatch: # 手动触发
+  schedule:
+    - cron: '0 2 * * *' # 每天凌晨2点自动触发一次
+
+jobs:
+  sync-and-merge:
+    runs-on: ubuntu-latest
+
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      TARGET_REPO: t96mytell/openwrt-packages-23.05
+      TARGET_BRANCH: main
+
+    steps:
+      # Step 0: Checkout Target Repository using the default GitHub token
+      - name: Checkout Target Repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.TARGET_REPO }}
+          ref: ${{ env.TARGET_BRANCH }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0  # Fetch all history for tags and branches
+
+      # Debugging: Print detailed information about the checkout process
+      - name: Print Detailed Checkout Information
+        run: |
+          echo "Checking out repository: $TARGET_REPO"
+          echo "Target branch: $TARGET_BRANCH"
+          echo "Current directory is: $(pwd)"
+          ls -la
+
+      # Verify .git folder exists after checkout
+      - name: Verify .git folder exists in target-repo
+        id: verify_git_folder
+        run: |
+          if [ ! -d ".git" ]; then
+            echo "Error: .git folder not found!"
+            exit 1
+          else
+            echo ".git folder found."
+            ls -la .git
+          fi
+
+      # Step 1: Define upstream repositories and directories to sync
+      - name: Define Upstream Repositories
+        run: |
+          declare -A REPOS=(
+            ["https://github.com/kiddin9/kwrt-packages.git"]="main shadowsocks-libev fullconenat-nft luci-app-dockerman dockerd luci-app-pptp-server luci-app-pppoe-relay luci-app-pppoe-server luci-app-openvpn-server luci-app-openvpn-client luci-app-ipsec-server luci-app-ipsec-vpnd luci-app-zerotier luci-app-einat openwrt-einat-ebpf"
+            ["https://github.com/Siriling/5G-Modem-Support.git"]="main exclude/README.md exclude/LICENSE"
+          )
+          echo "${REPOS[@]}" > repos.txt
+
+      # Step 2: Sync specified directories from upstream repositories
+      - name: Sync Repositories
+        run: |
+          while IFS='=' read -r repo config; do
+            IFS=' ' read -r branch includes <<< "$config"
+            dir=$(basename "$repo" .git)
+            echo "Cloning $repo at branch $branch into $dir"
+            git clone --depth 1 --branch "$branch" "$repo" "repos/$dir" || exit 1
+            
+            # 列出仓库内容以验证
+            echo "Content of $dir:"
+            ls -la "repos/$dir"
+
+            if [[ "$includes" != *"exclude/"* ]]; then
+              dirs_to_sync=$(echo "$includes" | tr ' ' '\n')
+              for dir_to_sync in $dirs_to_sync; do
+                if [ -d "repos/$dir/include/$dir_to_sync" ]; then
+                  echo "Syncing directory: include/$dir_to_sync to ./"
+                  rsync -av --delete-after "repos/$dir/include/$dir_to_sync/" "./include/"
+                else
+                  echo "Directory include/$dir_to_sync does not exist in $dir."
+                fi
+              done
+            elif [[ "$includes" == *"exclude/"* ]]; then
+              excludes=$(echo "$includes" | tr ',' '\n' | sed 's/exclude\//--exclude=/' | tr '\n' ' ')
+              echo "Syncing entire repository $dir to ./ with exclusions: $excludes"
+              rsync -av $excludes --delete-after "repos/$dir/" ./
+            fi
+            
+            echo "After rsync, content of current directory:"
+            ls -la
+          done < repos.txt
+
+      # Step 3: Commit and Push Changes to the Target Repository using the GitHub token
+      - name: Commit and Push Changes
+        run: |
+          # 添加更多调试信息
+          pwd
+          ls -la
+          ls -la .git
+
+          # 配置 Git 用户信息
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # 添加所有更改
+          git add .
+          
+          # 提交更改
+          if git diff-index --quiet HEAD; then
+            echo "No changes to commit."
+          else
+            git commit -m "Sync from multiple repos"
+            
+            # 确保本地分支正确跟踪远程分支
+            git branch --set-upstream-to=origin/${{ env.TARGET_BRANCH }} ${{ env.TARGET_BRANCH }} || true
+            
+            # 尝试拉取最新的更改并重新基础
+            git pull --rebase origin ${{ env.TARGET_BRANCH }} || true
+            
+            # 自动解决冲突：保留远程版本
+            resolve_conflicts() {
+              local files_to_resolve=("README.md" "LICENSE")
+              for file in "${files_to_resolve[@]}"; do
+                if git ls-files --unmerged | grep -q "$file"; then
+                  echo "Conflict detected in $file, attempting to resolve..."
+                  git checkout --theirs "$file"
+                  git add "$file"
+                  echo "Resolved conflict in $file."
+                fi
+              done
+            }
+            
+            # 检查是否有未解决的冲突
+            if git ls-files --unmerged | grep -q .; then
+              echo "Conflicts detected, attempting to resolve..."
+              resolve_conflicts
+              export GIT_EDITOR=: && \
+              git rebase --continue || true
+            else
+              echo "No conflicts detected."
+            fi
+            
+            # 推送更改
+            git push origin ${{ env.TARGET_BRANCH }}
+          fi
+        env:
+          GIT_AUTHOR_NAME: github-actions[bot]
+          GIT_COMMITTER_NAME: github-actions[bot]
+          GIT_AUTHOR_EMAIL: github-actions[bot]@users.noreply.github.com
+          GIT_COMMITTER_EMAIL: github-actions[bot]@users.noreply.github.com
