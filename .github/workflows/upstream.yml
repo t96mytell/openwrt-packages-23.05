@@ -78,8 +78,21 @@ jobs:
           # Use the helper function to clone the repository
           define_clone_function "$REPO_URL" "$BRANCH" "$DEST_DIR"
 
+          # Debug: Check if the cloned directory exists and is not empty
+          if [ ! -d "$DEST_DIR" ] || [ -z "$(ls -A $DEST_DIR)" ]; then
+            echo "Error: Cloned directory $DEST_DIR is missing or empty!"
+            exit 1
+          else
+            echo "Cloned directory $DEST_DIR contains:"
+            ls -la "$DEST_DIR"
+          fi
+
           # Sync excluding specified files
           rsync -av --delete-after $EXCLUDES "$DEST_DIR/" ./
+
+          # Debug: Check if files were copied correctly
+          echo "Files after syncing from $DEST_DIR:"
+          ls -la
 
           # Cleanup
           rm -rf "$DEST_DIR"
@@ -93,6 +106,15 @@ jobs:
           # Use the helper function to clone the repository
           define_clone_function "$REPO_URL" "$BRANCH" "$DEST_DIR"
 
+          # Debug: Check if the cloned directory exists and is not empty
+          if [ ! -d "$DEST_DIR" ] || [ -z "$(ls -A $DEST_DIR)" ]; then
+            echo "Error: Cloned directory $DEST_DIR is missing or empty!"
+            exit 1
+          else
+            echo "Cloned directory $DEST_DIR contains:"
+            ls -la "$DEST_DIR"
+          fi
+
           # Sync specified directories
           for dir in "${INCLUDE_DIRS[@]}"; do
             if [ -d "$DEST_DIR/$dir" ]; then
@@ -102,6 +124,10 @@ jobs:
               echo "Directory $dir does not exist in kwrt-packages."
             fi
           done
+
+          # Debug: Check if files were copied correctly
+          echo "Files after syncing from $DEST_DIR:"
+          ls -la
 
           # Cleanup
           rm -rf "$DEST_DIR"
@@ -116,6 +142,9 @@ jobs:
       # Step 3: Commit and Push Changes to the Target Repository using the Personal Access Token
       - name: Commit and Push Changes
         run: |
+          # Ensure we are on the correct branch
+          git checkout ${{ env.TARGET_BRANCH }} || (git checkout --orphan ${{ env.TARGET_BRANCH }} && git commit --allow-empty -m "Initial commit on new branch")
+
           # 添加所有更改
           git add .
 
