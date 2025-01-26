@@ -8,7 +8,7 @@ PKG_NAME:=einat-ebpf
 PKG_UPSTREAM_VERSION:=0.1.5
 PKG_UPSTREAM_GITHASH:=
 PKG_VERSION:=$(PKG_UPSTREAM_VERSION)$(if $(PKG_UPSTREAM_GITHASH),~$(call version_abbrev,$(PKG_UPSTREAM_GITHASH)))
-PKG_RELEASE:=27
+PKG_RELEASE:=32
 
 ifeq ($(PKG_UPSTREAM_GITHASH),)
 PKG_SOURCE_URL:=https://codeload.github.com/EHfive/einat-ebpf/tar.gz/refs/tags/v$(PKG_UPSTREAM_VERSION)?
@@ -18,10 +18,10 @@ PKG_SOURCE:=$(PKG_NAME)-$(PKG_UPSTREAM_VERSION).tar.gz
 else
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE_URL:=https://github.com/EHfive/einat-ebpf.git
-PKG_SOURCE_VERSION:=3681b3487a196bd9c234401b9e012330c5c02b8e
+PKG_SOURCE_VERSION:=491e13f522ce955d6b4845f530482b80a64847da
 PKG_MIRROR_HASH:=skip
 
-PKG_SOURCE:=$(PKG_NAME)-$(PKG_SOURCE_VERSION).tar.gz
+PKG_SOURCE:=$(PKG_NAME)-$(PKG_UPSTREAM_VERSION)-$(PKG_SOURCE_VERSION).tar.gz
 endif
 
 PKG_SOURCE_SUBDIR:=$(PKG_NAME)-$(PKG_UPSTREAM_VERSION)
@@ -41,17 +41,30 @@ PKG_CONFIG_DEPENDS+= \
 	CONFIG_EINAT_EBPF_BINDGEN \
 	CONFIG_EINAT_EBPF_STATIC \
 
+RUST_PKG_FEATURES:=$(subst $(space),$(comma),$(strip \
+	$(if $(CONFIG_EINAT_EBPF_IPV6),ipv6) \
+	$(if $(CONFIG_EINAT_EBPF_BACKEND_LIBBPF),libbpf) \
+	$(if $(CONFIG_EINAT_EBPF_BINDGEN),bindgen) \
+	$(if $(CONFIG_EINAT_EBPF_STATIC),static) \
+))
+
+#export EINAT_BPF_CFLAGS="-I/usr/include/aarch64-linux-gnu"
+
 include $(INCLUDE_DIR)/bpf.mk
 include $(INCLUDE_DIR)/package.mk
 include $(TOPDIR)/feeds/packages/lang/rust/rust-package.mk
 
+# Don't ignore Cargo.lock
+Build/Compile:=$(call Build/Compile/Cargo,,--locked)
+
 # The LLVM_PATH var is required so that einat's build script finds llvm-strip
 TARGET_PATH_PKG:=$(LLVM_PATH):$(TARGET_PATH_PKG)
 
+# Platform-specific features
 # $(TOPDIR)/feeds/packages/lang/rust/rust-values.mk
 # RUST_ARCH_DEPENDS:=@(aarch64||arm||i386||i686||mips||mipsel||mips64||mips64el||mipsel||powerpc64||riscv64||x86_64)
 EINAT_EBPF_RUST_ARCH_DEPENDS:=@(aarch64||arm||i386||i686||powerpc64||riscv64||x86_64) # Architectures other than x86_64 and aarch64 have not been tested.
-
+#
 ifeq ($(ARCH),arm)
   CONFIG_EINAT_EBPF_BINDGEN:=y
 else ifeq ($(ARCH),i386)
@@ -110,15 +123,6 @@ define Package/$(PKG_NAME)/config
 			default n
 	endmenu
 endef
-
-RUST_PKG_FEATURES:=$(subst $(space),$(comma),$(strip \
-	$(if $(CONFIG_EINAT_EBPF_IPV6),ipv6) \
-	$(if $(CONFIG_EINAT_EBPF_BACKEND_LIBBPF),libbpf) \
-	$(if $(CONFIG_EINAT_EBPF_BINDGEN),bindgen) \
-	$(if $(CONFIG_EINAT_EBPF_STATIC),static) \
-))
-
-#export EINAT_BPF_CFLAGS="-I/usr/include/aarch64-linux-gnu"
 
 define Package/$(PKG_NAME)/conffiles
 /etc/config/einat
