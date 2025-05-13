@@ -74,7 +74,8 @@ jobs:
           BRANCH="main"
           INCLUDE_DIRS=(
             "fibocom-dial"
-            "fibocom_MHI.fibocom_QMI_WWAN"
+            "fibocom_MHI"
+            "fibocom_QMI_WWAN"
             "luci-app-cpe"
             "luci-app-gobinetmodem"
             "luci-app-hypermodem"
