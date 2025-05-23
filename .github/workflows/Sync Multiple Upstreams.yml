@@ -9,9 +9,9 @@ jobs:
   sync-multi-dirs:
     runs-on: ubuntu-latest
     env:
-      PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }} # GitHub Token
-      TARGET_REPO: yourname/your-repo # 目标仓库
-      TARGET_BRANCH: main # 目标分支
+      PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+      TARGET_REPO: t96mytell/openwrt-packages-23.05
+      TARGET_BRANCH: main
 
     steps:
       # Step 1: 检出目标仓库
