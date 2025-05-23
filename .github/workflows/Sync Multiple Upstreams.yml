@@ -37,7 +37,7 @@ jobs:
 				   dockerd luci-app-pptp-server luci-app-pppoe-relay luci-app-pppoe-server /
 				   luci-app-openvpn-server luci-app-openvpn-client luci-app-ipsec-server luci-app-ipsec-vpnd /
 				   luci-app-zerotier luci-app-einat openwrt-einat-ebpf dns2socks-rust"
-			"repo3:immortalwrt/packages@main:packages/lang/lua-neturl"
+	    "repo3:immortalwrt/packages@master:packages/lang/lua-neturl"
           )
 
           for repo_entry in "${UPSTREAM_REPOS[@]}"; do
