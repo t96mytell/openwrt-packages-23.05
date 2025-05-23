@@ -185,7 +185,7 @@ jobs:
           REPO_URL="github.com/immortalwrt/packages.git"
           BRANCH="master"
           INCLUDE_DIRS=(
-            "packages/lang/lua-neturlh"
+            "lang/lua-neturlh"
           )
           DEST_DIR="repos/immortalwrt-packages"
 
