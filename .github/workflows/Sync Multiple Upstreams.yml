@@ -28,9 +28,9 @@ jobs:
         run: |
           # 定义上游仓库及需同步的目录（可扩展多个仓库）
           UPSTREAM_REPOS=(
-            "repo1:Siriling/5G-Modem-Support@main:fibocom-dial fibocom_MHI fibocom_QMI_WWAN luci-app-cpe luci-app-gobinetmodem luci-app-hypermodem luci-app-modem luci-app-pcimodem luci-app-sms-tool luci-app-spdmodem luci-app-usbmodem meig-cm meig_QMI_WWAN quectel_Gobinet quectel_MHI quectel_QMI_WWAN quectel_SRPD_PCIE quectel_cm_5G sendat sms-tool"
-            "repo2:kiddin9/kwrt-packages@main:luci-app-easymesh luci-app-leigod-acc leigod-acc luci-app-uugamebooster uugamebooster shadowsocks-libev fullconenat-nft luci-app-dockerman dockerd luci-app-pptp-server luci-app-pppoe-relay luci-app-pppoe-server luci-app-openvpn-server luci-app-openvpn-client luci-app-ipsec-server luci-app-ipsec-vpnd luci-app-zerotier luci-app-einat openwrt-einat-ebpf dns2socks-rust"
-            "repo3:immortalwrt/packages@master:packages/lang/lua-neturl"
+            "Siriling/5G-Modem-Support@main:fibocom-dial fibocom_MHI fibocom_QMI_WWAN luci-app-cpe luci-app-gobinetmodem luci-app-hypermodem luci-app-modem luci-app-pcimodem luci-app-sms-tool luci-app-spdmodem luci-app-usbmodem meig-cm meig_QMI_WWAN quectel_Gobinet quectel_MHI quectel_QMI_WWAN quectel_SRPD_PCIE quectel_cm_5G sendat sms-tool"
+            "kiddin9/kwrt-packages@main:luci-app-easymesh luci-app-leigod-acc leigod-acc luci-app-uugamebooster uugamebooster shadowsocks-libev fullconenat-nft luci-app-dockerman dockerd luci-app-pptp-server luci-app-pppoe-relay luci-app-pppoe-server luci-app-openvpn-server luci-app-openvpn-client luci-app-ipsec-server luci-app-ipsec-vpnd luci-app-zerotier luci-app-einat openwrt-einat-ebpf dns2socks-rust"
+            "immortalwrt/packages@master:packages/lang/lua-neturl"
           )
 
           for repo_entry in "${UPSTREAM_REPOS[@]}"; do
