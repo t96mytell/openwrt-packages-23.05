@@ -1,234 +1,342 @@
 name: Sync and Merge Upstream Repositories
-
 on:
   workflow_dispatch: # 手动触发
   schedule:
-    - cron: '0 2 * * *' # 每天凌晨2点自动触发一次
+    - cron: '0 */3 * * *' # 每3小时自动触发一次
 
 jobs:
   sync-and-merge:
     runs-on: ubuntu-latest
-
     env:
       PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
       TARGET_REPO: t96mytell/openwrt-packages-23.05
       TARGET_BRANCH: main
-
+    
     steps:
-      # Step 0: Checkout Target Repository using the Personal Access Token
+      # Step 0: Checkout Target Repository
       - name: Checkout Target Repository
         uses: actions/checkout@v4
         with:
           repository: ${{ env.TARGET_REPO }}
           ref: ${{ env.TARGET_BRANCH }}
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-          fetch-depth: 0  # Fetch all history for tags and branches
-
-      # Debugging: Print detailed information about the checkout process
-      - name: Print Detailed Checkout Information
+          fetch-depth: 0
+      
+      # 调试：打印检出信息
+      - name: Print Checkout Information
         run: |
-          echo "Checking out repository: $TARGET_REPO"
-          echo "Target branch: $TARGET_BRANCH"
-          echo "Current directory is: $(pwd)"
+          echo "当前工作目录: $(pwd)"
+          echo "仓库内容:"
           ls -la
-
-      # Verify .git folder exists after checkout
-      - name: Verify .git folder exists in target-repo
-        id: verify_git_folder
+      
+      # 确保.git目录存在
+      - name: Verify .git folder
         run: |
           if [ ! -d ".git" ]; then
-            echo "Error: .git folder not found!"
+            echo "错误: .git目录不存在!"
             exit 1
           else
-            echo ".git folder found."
-            ls -la .git
+            echo ".git目录验证通过"
           fi
-
-      # Ensure there's at least one commit in the repository
+      
+      # 确保有初始提交
       - name: Ensure initial commit exists
         run: |
           if git rev-parse --verify HEAD >/dev/null 2>&1; then
-            echo "Repository has existing commits."
+            echo "仓库已有提交记录"
           else
-            echo "No commits found, creating an initial commit..."
+            echo "创建初始提交..."
             touch README.md
             git add README.md
             git commit -m "Initial commit"
             git push origin ${{ env.TARGET_BRANCH }}
           fi
-
-      # Step 1: Define upstream repositories and directories to sync, including helper function and its usage
+      
+      # Step 1: 支持无顶层目录仓库和通用嵌套目录的同步方案
       - name: Sync from upstream repositories
         run: |
-          define_clone_function() {
-            local REPO_URL=$1
-            local BRANCH=$2
-            local DEST_DIR=$3
-
-            # Ensure the URL does not start with https:// twice
-            git clone --depth 1 --branch "$BRANCH" "https://${{ secrets.PERSONAL_ACCESS_TOKEN }}@$REPO_URL" "$DEST_DIR" || exit 1
+          set -euo pipefail
+          
+          # 同步函数（支持目录和无顶层目录仓库）
+          sync_repo() {
+            local repo_url=$1
+            local branch=$2
+            local clone_dir=$3
+            local mappings=$4
+            
+            echo "========================================"
+            echo "处理仓库: $repo_url (分支: $branch)"
+            echo "临时目录: $clone_dir"
+            echo "映射关系: $mappings"
+            echo "----------------------------------------"
+            
+            # 克隆仓库
+            echo "正在克隆仓库..."
+            git clone --quiet --depth 1 --branch "$branch" \
+              "https://${{ secrets.PERSONAL_ACCESS_TOKEN }}@$repo_url" \
+              "$clone_dir" || {
+              echo "错误: 克隆失败 - $repo_url"
+              return 1
+            }
+            
+            # 验证克隆结果
+            if [ ! -d "$clone_dir" ] || [ -z "$(ls -A "$clone_dir")" ]; then
+              echo "错误: 克隆目录为空 - $clone_dir"
+              return 1
+            fi
+            
+            # 解析映射关系
+            IFS=',' read -ra mapping_list <<< "$mappings"
+            for mapping in "${mapping_list[@]}"; do
+              # 去除映射字符串中的空格
+              mapping=$(echo "$mapping" | tr -d '[:space:]')
+              
+              # 分割源路径和目标路径
+              IFS=':' read -r src_path dest_path <<< "$mapping"
+              
+              # 特殊处理：空源路径表示整个仓库根目录
+              if [ -z "$src_path" ]; then
+                src_path="."
+                echo "检测到空源路径 - 将同步整个仓库根目录"
+              fi
+              
+              # 处理路径格式
+              src_path="${src_path%/}"
+              dest_path="${dest_path%/}"
+              
+              # 完整源路径
+              full_src="$clone_dir/$src_path"
+              
+              echo "同步: $src_path → $dest_path"
+              
+              if [ -e "$full_src" ]; then
+                # 创建目标目录的父目录
+                mkdir -p "$(dirname "./$dest_path")"
+                
+                # 执行同步（根据源类型使用不同参数）
+                if [ "$src_path" == "." ]; then
+                  # 同步整个仓库根目录（排除.git目录）
+                  echo "正在同步整个仓库根目录..."
+                  rsync -av --delete-after \
+                    --exclude='/.git' \
+                    "$clone_dir/" \
+                    "./$dest_path/"
+                elif [ -d "$full_src" ]; then
+                  # 同步目录
+                  echo "正在同步目录内容..."
+                  rsync -av --delete-after \
+                    "$full_src/" \
+                    "./$dest_path/"
+                else
+                  # 同步单个文件
+                  echo "正在同步文件..."
+                  rsync -av \
+                    "$full_src" \
+                    "./$dest_path"
+                fi
+                
+                # 验证同步结果
+                if [ -d "$full_src" ] && [ ! -d "./$dest_path" ]; then
+                  echo "错误: 目标目录未创建 - ./$dest_path"
+                  return 1
+                elif [ -f "$full_src" ] && [ ! -f "./$dest_path" ]; then
+                  echo "错误: 目标文件未创建 - ./$dest_path"
+                  return 1
+                fi
+                
+                echo "同步成功! 目标内容:"
+                ls -lA "./$dest_path"
+              else
+                echo "警告: 源路径不存在 - $full_src"
+                echo "目录结构:"
+                find "$clone_dir" -maxdepth 3 -type d | sort
+                return 1
+              fi
+            done
+            
+            # 清理
+            echo "清理临时目录..."
+            rm -rf "$clone_dir"
+            echo "----------------------------------------"
+            echo "仓库处理完成: $repo_url"
+            echo "========================================"
           }
+          
+          # 同步Siriling/5G-Modem-Support
+          sync_repo "github.com/Siriling/5G-Modem-Support.git" "main" \
+            "repos/5G-Modem-Support" \
+            "fibocom-dial:fibocom-dial,\
+            fibocom_MHI:fibocom_MHI,\
+            fibocom_QMI_WWAN:fibocom_QMI_WWAN,\
+            luci-app-cpe:luci-app-cpe,\
+            luci-app-gobinetmodem:luci-app-gobinetmodem,\
+            luci-app-hypermodem:luci-app-hypermodem,\
+            luci-app-modem:luci-app-modem,\
+            luci-app-pcimodem:luci-app-pcimodem,\
+            luci-app-sms-tool:luci-app-sms-tool,\
+            luci-app-spdmodem:luci-app-spdmodem,\
+            luci-app-usbmodem:luci-app-usbmodem,\
+            meig-cm:meig-cm,\
+            meig_QMI_WWAN:meig_QMI_WWAN,\
+            quectel_Gobinet:quectel_Gobinet,\
+            quectel_MHI:quectel_MHI,\
+            quectel_QMI_WWAN:quectel_QMI_WWAN,\
+            quectel_SRPD_PCIE:quectel_SRPD_PCIE,\
+            quectel_cm_5G:quectel_cm_5G,\
+            sendat:sendat,\
+            sms-tool:sms-tool"
+          
+          # 同步immortalwrt/packages
+          sync_repo "github.com/immortalwrt/packages.git" "master" \
+            "repos/immortalwrt-packages" \
+            "lang/lua-neturl:lua-neturl"
+          
+          # 同步kiddin9/kwrt-packages
+          sync_repo "github.com/kiddin9/kwrt-packages.git" "main" \
+            "repos/kwrt-packages" \
+            "luci-app-easymesh:luci-app-easymesh,\
+            luci-app-leigod-acc:luci-app-leigod-acc,\
+            leigod-acc:leigod-acc,\
+            luci-app-uugamebooster:luci-app-uugamebooster,\
+            uugamebooster:uugamebooster,\
+            shadowsocks-libev:shadowsocks-libev,\
+            fullconenat-nft:fullconenat-nft,\
+            luci-app-dockerman:luci-app-dockerman,\
+            dockerd:dockerd,\
+            luci-app-pptp-server:luci-app-pptp-server,\
+            luci-app-pppoe-relay:luci-app-pppoe-relay,\
+            luci-app-pppoe-server:luci-app-pppoe-server,\
+            luci-app-openvpn-server:luci-app-openvpn-server,\
+            luci-app-openvpn-client:luci-app-openvpn-client,\
+            luci-app-ipsec-server:luci-app-ipsec-server,\
+            luci-app-ipsec-vpnd:luci-app-ipsec-vpnd,\
+            luci-app-zerotier:luci-app-zerotier,\
+            luci-app-einat:luci-app-einat,\
+            openwrt-einat-ebpf:openwrt-einat-ebpf,\
+            dns2socks-rust:dns2socks-rust"
+          
+          # 同步kenzok8/small-package
+          sync_repo "github.com/kenzok8/small-package.git" "main" \
+            "repos/small-package" \
+            "luci-app-adguardhome:luci-app-adguardhome,\
+            adguardhome:adguardhome"
 
-          # Sync specific directories from Siriling/5G-Modem-Support
-          REPO_URL="github.com/Siriling/5G-Modem-Support.git"
-          BRANCH="main"
-          INCLUDE_DIRS=(
-            "fibocom-dial"
-            "fibocom_MHI"
-            "fibocom_QMI_WWAN"
-            "luci-app-cpe"
-            "luci-app-gobinetmodem"
-            "luci-app-hypermodem"
-            "luci-app-modem"
-            "luci-app-pcimodem"
-            "luci-app-sms-tool"
-            "luci-app-spdmodem"
-            "luci-app-usbmodem"
-            "meig-cm"
-            "meig_QMI_WWAN"
-            "quectel_Gobinet"
-            "quectel_MHI"
-            "quectel_QMI_WWAN"
-            "quectel_SRPD_PCIE"
-            "quectel_cm_5G"
-            "sendat"
-            "sms-tool"
-          )
-          DEST_DIR="repos/5G-Modem-Support"
-
-          # Use the helper function to clone the repository
-          define_clone_function "$REPO_URL" "$BRANCH" "$DEST_DIR"
-
-          # Debug: Check if the cloned directory exists and is not empty
-          if [ ! -d "$DEST_DIR" ] || [ -z "$(ls -A $DEST_DIR)" ]; then
-            echo "Error: Cloned directory $DEST_DIR is missing or empty!"
-            exit 1
-          else
-            echo "Cloned directory $DEST_DIR contains:"
-            ls -la "$DEST_DIR"
-          fi
-
-          # Sync specified directories
-          for dir in "${INCLUDE_DIRS[@]}"; do
-            if [ -d "$DEST_DIR/$dir" ]; then
-              echo "Syncing directory: $dir to ./"
-              rsync -av --delete-after "$DEST_DIR/$dir/" "./$dir/"
-            else
-              echo "Directory $dir does not exist in 5G-Modem-Support."
-            fi
-          done
-
-          # Debug: Check if files were copied correctly
-          echo "Files after syncing from $DEST_DIR:"
-          ls -la
-
-          # Cleanup
-          rm -rf "$DEST_DIR"
-
-          # Sync from kiddin9/kwrt-packages (unchanged)
-          REPO_URL="github.com/kiddin9/kwrt-packages.git"
-          BRANCH="main"
-          INCLUDE_DIRS=(
-            "luci-app-easymesh"
-            "luci-app-leigod-acc"
-            "leigod-acc"
-            "luci-app-uugamebooster"
-            "uugamebooster"
-            "shadowsocks-libev"
-            "fullconenat-nft"
-            "luci-app-dockerman"
-            "dockerd"
-            "luci-app-pptp-server"
-            "luci-app-pppoe-relay"
-            "luci-app-pppoe-server"
-            "luci-app-openvpn-server"
-            "luci-app-openvpn-client"
-            "luci-app-ipsec-server"
-            "luci-app-ipsec-vpnd"
-            "luci-app-zerotier"
-            "luci-app-einat"
-            "openwrt-einat-ebpf"
-            "dns2socks-rust"
-          )
-          DEST_DIR="repos/kwrt-packages"
-
-          # Use the helper function to clone the repository
-          define_clone_function "$REPO_URL" "$BRANCH" "$DEST_DIR"
-
-          # Debug: Check if the cloned directory exists and is not empty
-          if [ ! -d "$DEST_DIR" ] || [ -z "$(ls -A $DEST_DIR)" ]; then
-            echo "Error: Cloned directory $DEST_DIR is missing or empty!"
-            exit 1
-          else
-            echo "Cloned directory $DEST_DIR contains:"
-            ls -la "$DEST_DIR"
-          fi
-
-          # Sync specified directories
-          for dir in "${INCLUDE_DIRS[@]}"; do
-            if [ -d "$DEST_DIR/$dir" ]; then
-              echo "Syncing directory: $dir to ./"
-              rsync -av --delete-after "$DEST_DIR/$dir/" "./$dir/"
-            else
-              echo "Directory $dir does not exist in kwrt-packages."
-            fi
-          done
-
-          # Debug: Check if files were copied correctly
-          echo "Files after syncing from $DEST_DIR:"
-          ls -la
-
-          # Cleanup
-          rm -rf "$DEST_DIR"
-
-      # Step 2: Configure Git Credentials with PAT
+          # 同步kenzok8/small
+          sync_repo "github.com/kenzok8/small.git" "master" \
+            "repos/small" \
+            "brook:brook,\
+            chinadns-ng:chinadns-ng,\
+            dns2socks:dns2socks,\
+            dns2tcp:dns2tcp,\
+            gn:gn,\
+            hysteria:hysteria,\
+            ipt2socks:ipt2socks,\
+            luci-app-bypass:luci-app-bypass,\
+            luci-app-fchomo:luci-app-fchomo,\
+            luci-app-homeproxy:luci-app-homeproxy,\
+            luci-app-mosdns:luci-app-mosdns,\
+            luci-app-nikki:luci-app-nikki,\
+            luci-app-openclash:luci-app-openclash,\
+            luci-app-passwall:luci-app-passwall,\
+            luci-app-passwall2:luci-app-passwall2,\
+            luci-app-ssr-plus:luci-app-ssr-plus,\
+            microsocks:microsocks,\
+            mihomo:mihomo,\
+            mosdns:mosdns,\
+            naiveproxy:naiveproxy,\
+            nikki:nikki,\
+            pdnsd-alt:pdnsd-alt,\
+            redsocks2:redsocks2,\
+            shadow-tls:shadow-tls,\
+            shadowsocks-rust:shadowsocks-rust,\
+            shadowsocksr-libev:shadowsocksr-libev,\
+            simple-obfs:simple-obfs,\
+            sing-box:sing-box,\
+            ssocks:ssocks,\
+            tcping:tcping,\
+            trojan-go:trojan-go,\
+            trojan-plus:trojan-plus,\
+            trojan:trojan,\
+            tuic-client:tuic-client,\
+            v2dat:v2dat,\
+            v2ray-core:v2ray-core,\
+            v2ray-geodata:v2ray-geodata,\
+            v2ray-geoview:v2ray-geoview,\
+            v2ray-plugin:v2ray-plugin,\
+            v2raya:v2raya,\
+            xray-core:xray-core,\
+            xray-plugin:xray-plugin"
+          
+          # 最终验证
+          echo "========================================"
+          echo "所有仓库同步完成!"
+          echo "最终目录结构:"
+          find . -maxdepth 3 -type d | sort
+          echo "========================================"
+      
+      # Step 2: 配置Git凭据
       - name: Configure Git Credentials
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git remote set-url origin "https://${{ secrets.PERSONAL_ACCESS_TOKEN }}@github.com/${{ env.TARGET_REPO }}.git"
-
-      # Step 3: Commit and Push Changes to the Target Repository using the Personal Access Token
+          git remote set-url origin \
+            "https://${{ secrets.PERSONAL_ACCESS_TOKEN }}@github.com/${{ env.TARGET_REPO }}.git"
+      
+      # Step 3: 提交和推送更改
       - name: Commit and Push Changes
         run: |
-          # Ensure we are on the correct branch
-          git checkout ${{ env.TARGET_BRANCH }} || (git checkout --orphan ${{ env.TARGET_BRANCH }} && git commit --allow-empty -m "Initial commit on new branch")
-
+          set -e
+          
+          # 切换到目标分支
+          git checkout ${{ env.TARGET_BRANCH }} || \
+            git checkout -b ${{ env.TARGET_BRANCH }}
+          
           # 添加所有更改
           git add .
-
-          # 提交更改
+          
+          # 检查是否有更改
           if git diff-index --quiet HEAD; then
-            echo "No changes to commit."
+            echo "没有需要提交的更改"
           else
-            git commit -m "Sync from multiple repos"
-
-            # 尝试拉取最新的更改并重新基础
+            # 提交更改
+            git commit -m "自动同步: 从上游仓库更新 $(date +'%Y-%m-%d %H:%M:%S')"
+            
+            # 拉取最新更改（尝试变基）
+            echo "拉取最新更改..."
             git pull --rebase origin ${{ env.TARGET_BRANCH }} || true
-
-            # 自动解决冲突：保留远程版本
+            
+            # 解决可能的冲突（保留远程版本）
             resolve_conflicts() {
               local files_to_resolve=("README.md" "LICENSE")
               for file in "${files_to_resolve[@]}"; do
                 if git ls-files --unmerged | grep -q "$file"; then
-                  echo "Conflict detected in $file, attempting to resolve..."
+                  echo "检测到冲突: $file, 保留远程版本..."
                   git checkout --theirs "$file"
                   git add "$file"
-                  echo "Resolved conflict in $file."
                 fi
               done
             }
-
+            
             # 检查是否有未解决的冲突
             if git ls-files --unmerged | grep -q .; then
-              echo "Conflicts detected, attempting to resolve..."
+              echo "检测到冲突，尝试解决..."
               resolve_conflicts
-              export GIT_EDITOR=: && \
-              git rebase --continue || true
-            else
-              echo "No conflicts detected."
+              git rebase --continue
             fi
-
+            
             # 推送更改
+            echo "推送更改到远程仓库..."
             git push origin ${{ env.TARGET_BRANCH }}
+            echo "更改已成功推送!"
           fi
+
+      # Step 4: 清理7天前的工作流运行记录
+      - name: Cleanup old workflow runs
+        if: ${{ always() }}
+        uses: Mattraks/delete-workflow-runs@main
+        with:
+          retain_days: 7
+          keep_minimum_runs: 5
+          repository: ${{ github.repository }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          workflow_name: ${{ github.workflow }}
