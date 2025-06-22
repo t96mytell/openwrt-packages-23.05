@@ -189,7 +189,13 @@ jobs:
           # 同步immortalwrt/packages
           sync_repo "github.com/immortalwrt/packages.git" "master" \
             "repos/immortalwrt-packages" \
-            "lang/lua-neturl:lua-neturl"
+            "lang/lua-neturl:lua-neturl,\
+            net/keepalived:keepalived"
+
+          # 同步immortalwrt/luci
+          sync_repo "github.com/immortalwrt/luci.git" "master" \
+            "repos/immortalwrt-luci" \
+            "applications/luci-app-keepalived"
           
           # 同步kiddin9/kwrt-packages
           sync_repo "github.com/kiddin9/kwrt-packages.git" "main" \
