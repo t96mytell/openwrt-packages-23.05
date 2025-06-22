@@ -57,7 +57,7 @@ jobs:
         run: |
           set -euo pipefail
           
-          # 通用同步函数
+          # 改进的同步函数
           sync_repo() {
             local repo_url=$1
             local branch=$2
@@ -80,7 +80,7 @@ jobs:
             }
             
             # 验证克隆结果
-            if [ ! -d "$clone_dir" ] || [ -z "$(ls -A $clone_dir)" ]; then
+            if [ ! -d "$clone_dir" ] || [ -z "$(ls -A "$clone_dir")" ]; then
               echo "错误: 克隆目录为空 - $clone_dir"
               return 1
             fi
@@ -88,12 +88,17 @@ jobs:
             # 解析映射关系
             IFS=',' read -ra mapping_list <<< "$mappings"
             for mapping in "${mapping_list[@]}"; do
+              # 去除映射字符串中的空格
+              mapping=$(echo "$mapping" | tr -d '[:space:]')
+              
+              # 分割源路径和目标路径
               IFS=':' read -r src_path dest_path <<< "$mapping"
               
               # 处理路径格式
               src_path="${src_path%/}"
               dest_path="${dest_path%/}"
               
+              # 完整源路径
               full_src="$clone_dir/$src_path"
               
               echo "同步: $src_path → $dest_path"
