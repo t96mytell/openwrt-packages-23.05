@@ -2,7 +2,7 @@ name: Sync and Merge Upstream Repositories - test
 on:
   workflow_dispatch: # 手动触发
   schedule:
-    - cron: '0 2 * * *' # 每天凌晨2点自动触发一次
+    - cron: '0 */3 * * *' # 每3小时自动触发一次
 
 jobs:
   sync-and-merge:
