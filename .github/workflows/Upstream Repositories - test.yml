@@ -194,6 +194,52 @@ jobs:
             "repos/small-package" \
             "luci-app-adguardhome:luci-app-adguardhome,\
             adguardhome:adguardhome"
+
+          # 同步kenzok8/small
+          sync_repo "github.com/kenzok8/small.git" "master" \
+            "repos/small" \
+            "brook:brook,\
+            chinadns-ng:chinadns-ng,\
+            dns2socks:dns2socks,\
+            dns2tcp:dns2tcp,\
+            gn:gn,\
+            hysteria:hysteria,\
+            ipt2socks:ipt2socks,\
+            luci-app-bypass:luci-app-bypass,\
+            luci-app-fchomo:luci-app-fchomo,\
+            luci-app-homeproxy:luci-app-homeproxy,\
+            luci-app-mosdns:luci-app-mosdns,\
+            luci-app-nikki:luci-app-nikki,\
+            luci-app-openclash:luci-app-openclash,\
+            luci-app-passwall:luci-app-passwall,\
+            luci-app-passwall2:luci-app-passwall2,\
+            luci-app-ssr-plus:luci-app-ssr-plus,\
+            microsocks:microsocks,\
+            mihomo:mihomo,\
+            mosdns:mosdns,\
+            naiveproxy:naiveproxy,\
+            nikki:nikki,\
+            pdnsd-alt:pdnsd-alt,\
+            redsocks2:redsocks2,\
+            shadow-tls:shadow-tls,\
+            shadowsocks-rust:shadowsocks-rust,\
+            shadowsocksr-libev:shadowsocksr-libev,\
+            simple-obfs:simple-obfs,\
+            sing-box:sing-box,\
+            ssocks:ssocks,\
+            tcping:tcping,\
+            trojan-go:trojan-go,\
+            trojan-plus:trojan-plus,\
+            trojan:trojan,\
+            tuic-client:tuic-client,\
+            v2dat:v2dat,\
+            v2ray-core:v2ray-core,\
+            v2ray-geodata:v2ray-geodata,\
+            v2ray-geoview:v2ray-geoview,\
+            v2ray-plugin:v2ray-plugin,\
+            v2raya:v2raya,\
+            xray-core:xray-core,\
+            xray-plugin:xray-plugin"
           
           # 最终验证
           echo "========================================"
