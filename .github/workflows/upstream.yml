@@ -164,13 +164,54 @@ jobs:
             ls -la "$DEST_DIR"
           fi
 
+          # Sync from kenzok8/small-package (unchanged)
+          REPO_URL="github.com/kenzok8/small-package.git"
+          BRANCH="main"
+          INCLUDE_DIRS=(
+            "luci-app-adguardhome"
+            "adguardhome"
+          )
+          DEST_DIR="repos/small-package"
+
+          # Use the helper function to clone the repository
+          define_clone_function "$REPO_URL" "$BRANCH" "$DEST_DIR"
+
+          # Debug: Check if the cloned directory exists and is not empty
+          if [ ! -d "$DEST_DIR" ] || [ -z "$(ls -A $DEST_DIR)" ]; then
+            echo "Error: Cloned directory $DEST_DIR is missing or empty!"
+            exit 1
+          else
+            echo "Cloned directory $DEST_DIR contains:"
+            ls -la "$DEST_DIR"
+          fi
+
+          # Sync from immortalwrt/packages
+          REPO_URL="github.com/immortalwrt/packages.git"
+          BRANCH="master"
+          INCLUDE_DIRS=(
+            "lang/lua-neturl"
+          )
+          DEST_DIR="repos/immortalwrt-packages"
+
+          # Use the helper function to clone the repository
+          define_clone_function "$REPO_URL" "$BRANCH" "$DEST_DIR"
+
+          # Debug: Check if the cloned directory exists and is not empty
+          if [ ! -d "$DEST_DIR" ] || [ -z "$(ls -A $DEST_DIR)" ]; then
+            echo "Error: Cloned directory $DEST_DIR is missing or empty!"
+            exit 1
+          else
+            echo "Cloned directory $DEST_DIR contains:"
+            ls -la "$DEST_DIR"
+          fi
+
           # Sync specified directories
           for dir in "${INCLUDE_DIRS[@]}"; do
             if [ -d "$DEST_DIR/$dir" ]; then
               echo "Syncing directory: $dir to ./"
               rsync -av --delete-after "$DEST_DIR/$dir/" "./$dir/"
             else
-              echo "Directory $dir does not exist in kwrt-packages."
+              echo "Directory $dir does not exist."
             fi
           done
 
