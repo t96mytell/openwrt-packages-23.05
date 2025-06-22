@@ -1,0 +1,207 @@
+name: Sync and Merge Upstream Repositories - test
+on:
+  workflow_dispatch: # 手动触发
+  schedule:
+    - cron: '0 2 * * *' # 每天凌晨2点自动触发一次
+
+jobs:
+  sync-and-merge:
+    runs-on: ubuntu-latest
+    env:
+      PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+      TARGET_REPO: t96mytell/openwrt-packages-23.05
+      TARGET_BRANCH: main
+    
+    steps:
+      # Step 0: Checkout Target Repository
+      - name: Checkout Target Repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.TARGET_REPO }}
+          ref: ${{ env.TARGET_BRANCH }}
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          fetch-depth: 0
+      
+      # 调试：打印检出信息
+      - name: Print Checkout Information
+        run: |
+          echo "当前工作目录: $(pwd)"
+          echo "仓库内容:"
+          ls -la
+      
+      # 确保.git目录存在
+      - name: Verify .git folder
+        run: |
+          if [ ! -d ".git" ]; then
+            echo "错误: .git目录不存在!"
+            exit 1
+          else
+            echo ".git目录验证通过"
+          fi
+      
+      # 确保有初始提交
+      - name: Ensure initial commit exists
+        run: |
+          if git rev-parse --verify HEAD >/dev/null 2>&1; then
+            echo "仓库已有提交记录"
+          else
+            echo "创建初始提交..."
+            touch README.md
+            git add README.md
+            git commit -m "Initial commit"
+            git push origin ${{ env.TARGET_BRANCH }}
+          fi
+      
+      # Step 1: 通用嵌套目录同步方案
+      - name: Sync from upstream repositories
+        run: |
+          # 设置严格错误处理
+          set -euo pipefail
+          
+          # 通用同步函数
+          sync_repo() {
+            local repo_url=$1
+            local branch=$2
+            local clone_dir=$3
+            local mappings=$4  # "源路径1:目标路径1,源路径2:目标路径2,..."
+            
+            echo "========================================"
+            echo "处理仓库: $repo_url (分支: $branch)"
+            echo "临时目录: $clone_dir"
+            echo "映射关系: $mappings"
+            echo "----------------------------------------"
+            
+            # 克隆仓库
+            echo "正在克隆仓库..."
+            git clone --quiet --depth 1 --branch "$branch" "https://${{ secrets.PERSONAL_ACCESS_TOKEN }}@$repo_url" "$clone_dir" || {
+              echo "错误: 克隆失败 - $repo_url"
+              return 1
+            }
+            
+            # 验证克隆结果
+            if [ ! -d "$clone_dir" ] || [ -z "$(ls -A $clone_dir)" ]; then
+              echo "错误: 克隆目录为空 - $clone_dir"
+              return 1
+            fi
+            
+            # 解析映射关系
+            IFS=',' read -ra mapping_list <<< "$mappings"
+            for mapping in "${mapping_list[@]}"; do
+              IFS=':' read -r src_path dest_path <<< "$mapping"
+              
+              # 处理路径格式
+              src_path="${src_path%/}"  # 移除尾部斜杠
+              dest_path="${dest_path%/}"  # 移除尾部斜杠
+              
+              # 完整源路径
+              full_src="$clone_dir/$src_path"
+              
+              echo "同步: $src_path → $dest_path"
+              
+              if [ -d "$full_src" ]; then
+                # 创建目标目录的父目录
+                mkdir -p "$(dirname "./$dest_path")"
+                
+                # 执行同步
+                echo "正在同步目录内容..."
+                rsync -av --delete-after "$full_src/" "./$dest_path/"
+                
+                # 验证同步结果
+                if [ ! -d "./$dest_path" ]; then
+                  echo "错误: 目标目录未创建 - ./$dest_path"
+                  return 1
+                fi
+                echo "同步成功! 目标目录内容:"
+                ls -lA "./$dest_path"
+              else
+                echo "警告: 源目录不存在 - $full_src"
+                echo "目录结构:"
+                find "$clone_dir" -maxdepth 3 -type d | sort
+                return 1
+              fi
+            done
+            
+            # 清理
+            echo "清理临时目录..."
+            rm -rf "$clone_dir"
+            echo "----------------------------------------"
+            echo "仓库处理完成: $repo_url"
+            echo "========================================"
+          }
+          
+          # 同步Siriling/5G-Modem-Support
+          sync_repo "github.com/Siriling/5G-Modem-Support.git" "main" "repos/5G-Modem-Support" \
+            "fibocom-dial:fibocom-dial,fibocom_MHI:fibocom_MHI,fibocom_QMI_WWAN:fibocom_QMI_WWAN,luci-app-cpe:luci-app-cpe,luci-app-gobinetmodem:luci-app-gobinetmodem,luci-app-hypermodem:luci-app-hypermodem,luci-app-modem:luci-app-modem,luci-app-pcimodem:luci-app-pcimodem,luci-app-sms-tool:luci-app-sms-tool,luci-app-spdmodem:luci-app-spdmodem,luci-app-usbmodem:luci-app-usbmodem,meig-cm:meig-cm,meig_QMI_WWAN:meig_QMI_WWAN,quectel_Gobinet:quectel_Gobinet,quectel_MHI:quectel_MHI,quectel_QMI_WWAN:quectel_QMI_WWAN,quectel_SRPD_PCIE:quectel_SRPD_PCIE,quectel_cm_5G:quectel_cm_5G,sendat:sendat,sms-tool:sms-tool"
+          
+          # 同步immortalwrt/packages (嵌套目录同步到根目录)
+          sync_repo "github.com/immortalwrt/packages.git" "master" "repos/immortalwrt-packages" \
+            "lang/lua-neturl:lua-neturl"
+          
+          # 同步kiddin9/kwrt-packages
+          sync_repo "github.com/kiddin9/kwrt-packages.git" "main" "repos/kwrt-packages" \
+            "luci-app-easymesh:luci-app-easymesh,luci-app-leigod-acc:luci-app-leigod-acc,leigod-acc:leigod-acc,luci-app-uugamebooster:luci-app-uugamebooster,uugamebooster:uugamebooster,shadowsocks-libev:shadowsocks-libev,fullconenat-nft:fullconenat-nft,luci-app-dockerman:luci-app-dockerman,dockerd:dockerd,luci-app-pptp-server:luci-app-pptp-server,luci-app-pppoe-relay:luci-app-pppoe-relay,luci-app-pppoe-server:luci-app-pppoe-server,luci-app-openvpn-server:luci-app-openvpn-server,luci-app-openvpn-client:luci-app-openvpn-client,luci-app-ipsec-server:luci-app-ipsec-server,luci-app-ipsec-vpnd:luci-app-ipsec-vpnd,luci-app-zerotier:luci-app-zerotier,luci-app-einat:luci-app-einat,openwrt-einat-ebpf:openwrt-einat-ebpf,dns2socks-rust:dns2socks-rust"
+          
+          # 同步kenzok8/small-package
+          sync_repo "github.com/kenzok8/small-package.git" "main" "repos/small-package" \
+            "luci-app-adguardhome:luci-app-adguardhome,adguardhome:adguardhome"
+          
+          # 最终验证
+          echo "========================================"
+          echo "所有仓库同步完成!"
+          echo "最终目录结构:"
+          find . -maxdepth 3 -type d | sort
+          echo "========================================"
+      
+      # Step 2: 配置Git凭据
+      - name: Configure Git Credentials
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin "https://${{ secrets.PERSONAL_ACCESS_TOKEN }}@github.com/${{ env.TARGET_REPO }}.git"
+      
+      # Step 3: 提交和推送更改
+      - name: Commit and Push Changes
+        run: |
+          set -e
+          
+          # 切换到目标分支
+          git checkout ${{ env.TARGET_BRANCH }} || git checkout -b ${{ env.TARGET_BRANCH }}
+          
+          # 添加所有更改
+          git add .
+          
+          # 检查是否有更改
+          if git diff-index --quiet HEAD; then
+            echo "没有需要提交的更改"
+          else
+            # 提交更改
+            git commit -m "自动同步: 从上游仓库更新 $(date +'%Y-%m-%d %H:%M:%S')"
+            
+            # 拉取最新更改（尝试变基）
+            echo "拉取最新更改..."
+            git pull --rebase origin ${{ env.TARGET_BRANCH }} || true
+            
+            # 解决可能的冲突（保留远程版本）
+            resolve_conflicts() {
+              local files_to_resolve=("README.md" "LICENSE")
+              for file in "${files_to_resolve[@]}"; do
+                if git ls-files --unmerged | grep -q "$file"; then
+                  echo "检测到冲突: $file, 保留远程版本..."
+                  git checkout --theirs "$file"
+                  git add "$file"
+                fi
+              done
+            }
+            
+            # 检查是否有未解决的冲突
+            if git ls-files --unmerged | grep -q .; then
+              echo "检测到冲突，尝试解决..."
+              resolve_conflicts
+              git rebase --continue
+            fi
+            
+            # 推送更改
+            echo "推送更改到远程仓库..."
+            git push origin ${{ env.TARGET_BRANCH }}
+            echo "更改已成功推送!"
+          fi
