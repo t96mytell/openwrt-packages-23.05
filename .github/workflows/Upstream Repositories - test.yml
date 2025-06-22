@@ -8,7 +8,7 @@ jobs:
   sync-and-merge:
     runs-on: ubuntu-latest
     env:
-      PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       TARGET_REPO: t96mytell/openwrt-packages-23.05
       TARGET_BRANCH: main
     
@@ -19,7 +19,7 @@ jobs:
         with:
           repository: ${{ env.TARGET_REPO }}
           ref: ${{ env.TARGET_BRANCH }}
-          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
       
       # 调试：打印检出信息
@@ -73,7 +73,7 @@ jobs:
             # 克隆仓库
             echo "正在克隆仓库..."
             git clone --quiet --depth 1 --branch "$branch" \
-              "https://${{ secrets.PERSONAL_ACCESS_TOKEN }}@$repo_url" \
+              "https://${{ secrets.GITHUB_TOKEN }}@$repo_url" \
               "$clone_dir" || {
               echo "错误: 克隆失败 - $repo_url"
               return 1
@@ -254,7 +254,7 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git remote set-url origin \
-            "https://${{ secrets.PERSONAL_ACCESS_TOKEN }}@github.com/${{ env.TARGET_REPO }}.git"
+            "https://${{ secrets.GITHUB_TOKEN }}@github.com/${{ env.TARGET_REPO }}.git"
       
       # Step 3: 提交和推送更改
       - name: Commit and Push Changes
