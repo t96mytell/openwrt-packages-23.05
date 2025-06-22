@@ -52,7 +52,7 @@ jobs:
             git push origin ${{ env.TARGET_BRANCH }}
           fi
       
-      # Step 1: 通用嵌套目录同步方案（使用换行优化）
+      # Step 1: 通用嵌套目录同步方案
       - name: Sync from upstream repositories
         run: |
           set -euo pipefail
@@ -160,7 +160,7 @@ jobs:
             "repos/immortalwrt-packages" \
             "lang/lua-neturl:lua-neturl"
           
-          # 同步kiddin9/kwrt-packages（使用换行优化）
+          # 同步kiddin9/kwrt-packages
           sync_repo "github.com/kiddin9/kwrt-packages.git" "main" \
             "repos/kwrt-packages" \
             "luci-app-easymesh:luci-app-easymesh,\
@@ -205,7 +205,7 @@ jobs:
           git remote set-url origin \
             "https://${{ secrets.PERSONAL_ACCESS_TOKEN }}@github.com/${{ env.TARGET_REPO }}.git"
       
-      # Step 3: 提交和推送更改（使用换行优化）
+      # Step 3: 提交和推送更改
       - name: Commit and Push Changes
         run: |
           set -e
