@@ -307,7 +307,7 @@ jobs:
       # Step 4: 清理7天前的工作流运行记录
       - name: Cleanup old workflow runs
         if: ${{ always() }}
-        uses: Mattraks/delete-workflow-runs@v2.0.0
+        uses: Mattraks/delete-workflow-runs@main
         with:
           retain_days: 7
           keep_minimum_runs: 5
