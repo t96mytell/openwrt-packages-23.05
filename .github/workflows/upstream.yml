@@ -113,37 +113,37 @@ jobs:
                 # 创建目标目录的父目录
                 mkdir -p "$(dirname "./$dest_path")"
                 
-                # 执行同步（根据源类型使用不同参数）
+                # 获取目标路径下所有文件
+                target_files=()
+                while IFS= read -r -d '' file; do
+                  target_files+=("$file")
+                done < <(find "./$dest_path" -type f -print0)
+
+                # 逐个检查文件状态并同步
+                for target_file in "${target_files[@]}"; do
+                  relative_path="${target_file#$PWD/}"
+                  remote_file="$full_src${relative_path}"
+
+                  if [ -f "$remote_file" ]; then
+                    # 如果本地文件未被修改，覆盖为远程版本
+                    if ! git diff --quiet HEAD "$target_file"; then
+                      echo "本地文件已修改，跳过同步: $target_file"
+                    else
+                      echo "同步远程文件到本地: $target_file"
+                      cp "$remote_file" "$target_file"
+                    fi
+                  fi
+                done
+
+                # 同步新增文件（仅目录）
                 if [ "$src_path" == "." ]; then
-                  # 同步整个仓库根目录（排除.git目录）
                   echo "正在同步整个仓库根目录..."
-                  rsync -av --delete-after \
-                    --exclude='/.git' \
-                    "$clone_dir/" \
-                    "./$dest_path/"
+                  rsync -av --exclude='/.git' "$clone_dir/" "./$dest_path/"
                 elif [ -d "$full_src" ]; then
-                  # 同步目录
-                  echo "正在同步目录内容..."
-                  rsync -av --delete-after \
-                    "$full_src/" \
-                    "./$dest_path/"
-                else
-                  # 同步单个文件
-                  echo "正在同步文件..."
-                  rsync -av \
-                    "$full_src" \
-                    "./$dest_path"
+                  echo "正在同步目录新增文件..."
+                  rsync -av --exclude='/.git' "$full_src/" "./$dest_path/"
                 fi
-                
-                # 验证同步结果
-                if [ -d "$full_src" ] && [ ! -d "./$dest_path" ]; then
-                  echo "错误: 目标目录未创建 - ./$dest_path"
-                  return 1
-                elif [ -f "$full_src" ] && [ ! -f "./$dest_path" ]; then
-                  echo "错误: 目标文件未创建 - ./$dest_path"
-                  return 1
-                fi
-                
+
                 echo "同步成功! 目标内容:"
                 ls -lA "./$dest_path"
               else
@@ -311,21 +311,17 @@ jobs:
             echo "拉取最新更改..."
             git pull --rebase origin ${{ env.TARGET_BRANCH }} || true
             
-            # 解决可能的冲突（保留远程版本）
+            # 解决冲突（保留本地版本）
             resolve_conflicts() {
-              local files_to_resolve=("README.md" "LICENSE")
-              for file in "${files_to_resolve[@]}"; do
-                if git ls-files --unmerged | grep -q "$file"; then
-                  echo "检测到冲突: $file, 保留远程版本..."
-                  git checkout --theirs "$file"
-                  git add "$file"
-                fi
+              git ls-files --unmerged | awk '{print $1}' | while read -r file; do
+                git checkout --ours "$file"
+                git add "$file"
               done
             }
             
             # 检查是否有未解决的冲突
             if git ls-files --unmerged | grep -q .; then
-              echo "检测到冲突，尝试解决..."
+              echo "检测到冲突，保留本地版本..."
               resolve_conflicts
               git rebase --continue
             fi
