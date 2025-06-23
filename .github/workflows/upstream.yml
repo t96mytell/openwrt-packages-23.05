@@ -146,7 +146,7 @@ jobs:
             echo "合并前差异报告:"
             git diff HEAD "$temp_branch" --name-status || true
 
-            # 执行合并 - 关键修复: 使用--no-ff确保创建合并提交
+            # 执行合并
             git merge "$temp_branch" -m "Merge updates from ${remote_name}" -X ours --no-ff
 
             # 添加详细的合并后状态
