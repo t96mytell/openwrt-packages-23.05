@@ -28,6 +28,7 @@ jobs:
           echo "当前工作目录: $(pwd)"
           echo "仓库内容:"
           ls -la
+          echo "当前时间: $(date)"
       
       # 确保.git目录存在
       - name: Verify .git folder
@@ -53,21 +54,16 @@ jobs:
           fi
       
       # Step 1: 支持无顶层目录仓库和通用嵌套目录的同步方案
-      - name: Sync from upstream repositories (Hash-based)
+      - name: Sync from upstream repositories (Preserve Target Changes)
         run: |
           set -euo pipefail
           
-          # 计算文件哈希
-          calculate_hash() {
-            local file_path=$1
-            if [ -f "$file_path" ]; then
-              sha256sum "$file_path" | cut -d' ' -f1
-            else
-              echo "file_not_found"
-            fi
-          }
+          # 获取目标仓库当前状态
+          echo "记录目标仓库当前状态..."
+          git status --porcelain > /tmp/target_status.txt
+          git diff HEAD > /tmp/target_diff.txt
           
-          # 同步函数
+          # 同步函数（优先保留目标仓库更改）
           sync_repo() {
             local repo_url=$1
             local branch=$2
@@ -123,174 +119,77 @@ jobs:
                 # 创建目标目录的父目录
                 mkdir -p "$(dirname "./$dest_path")"
                 
-                # 基于哈希的同步
+                # 执行同步（优先保留目标仓库更改）
                 if [ "$src_path" == "." ]; then
-                  # 同步整个仓库根目录
+                  # 同步整个仓库根目录（优先保留目标仓库更改）
                   echo "正在同步整个仓库根目录..."
                   
-                  # 1. 遍历上游目录中的所有文件
+                  # 1. 只添加新文件
+                  rsync -av --ignore-existing --exclude='/.git' \
+                    "$clone_dir/" \
+                    "./$dest_path/"
+                    
+                  # 2. 更新未被修改的文件
                   find "$clone_dir" -type f | while read -r src_file; do
-                    # 计算相对路径
                     rel_path="${src_file#$clone_dir/}"
                     dest_file="./$dest_path/$rel_path"
                     
-                    # 计算哈希
-                    src_hash=$(calculate_hash "$src_file")
-                    dest_hash=$(calculate_hash "$dest_file")
-                    
-                    # 处理文件
-                    if [ ! -f "$dest_file" ]; then
-                      # 文件在目标仓库不存在，直接复制
-                      echo "添加新文件: $rel_path"
-                      mkdir -p "$(dirname "$dest_file")"
-                      cp -f "$src_file" "$dest_file"
-                    elif [ "$src_hash" == "$dest_hash" ]; then
-                      # 文件相同，无需操作
-                      : # 无操作
+                    # 检查文件是否被修改
+                    if grep -q "^ M $dest_file" /tmp/target_status.txt || \
+                       grep -q "$dest_file" /tmp/target_diff.txt; then
+                      echo "保留修改的文件: $rel_path"
                     else
-                      # 文件不同，检查目标仓库是否修改过
-                      if git ls-files --error-unmatch "$dest_file" >/dev/null 2>&1; then
-                        # 文件在git中，检查是否被修改
-                        if git diff --quiet HEAD -- "$dest_file"; then
-                          # 未被修改，使用上游版本
-                          echo "更新文件（未被修改）: $rel_path"
-                          cp -f "$src_file" "$dest_file"
-                        else
-                          # 已被修改，保留目标仓库版本
-                          echo "保留修改的文件: $rel_path"
-                        fi
-                      else
-                        # 文件不在git中，视为新文件，使用上游版本
-                        echo "更新非git文件: $rel_path"
+                      # 文件未被修改，使用上游版本
+                      if [ -f "$dest_file" ]; then
+                        echo "更新未被修改的文件: $rel_path"
                         cp -f "$src_file" "$dest_file"
-                      fi
-                    fi
-                  done
-                  
-                  # 2. 处理上游删除的文件
-                  find "./$dest_path" -type f | while read -r dest_file; do
-                    rel_path="${dest_file#./$dest_path/}"
-                    src_file="$clone_dir/$rel_path"
-                    
-                    if [ ! -f "$src_file" ]; then
-                      # 文件在上游已删除
-                      if git ls-files --error-unmatch "$dest_file" >/dev/null 2>&1; then
-                        # 文件在git中，检查是否被修改
-                        if git diff --quiet HEAD -- "$dest_file"; then
-                          # 未被修改，删除文件
-                          echo "删除文件（未被修改）: $rel_path"
-                          rm -f "$dest_file"
-                        else
-                          # 已被修改，保留文件
-                          echo "保留已删除但被修改的文件: $rel_path"
-                        fi
-                      else
-                        # 文件不在git中，删除
-                        echo "删除非git文件: $rel_path"
-                        rm -f "$dest_file"
                       fi
                     fi
                   done
                   
                 elif [ -d "$full_src" ]; then
-                  # 同步目录
+                  # 同步目录（优先保留目标仓库更改）
                   echo "正在同步目录内容..."
                   
-                  # 1. 遍历上游目录中的所有文件
+                  # 1. 只复制目标目录中不存在的文件
+                  rsync -av --ignore-existing \
+                    "$full_src/" \
+                    "./$dest_path/"
+                    
+                  # 2. 更新未被修改的文件
                   find "$full_src" -type f | while read -r src_file; do
-                    # 计算相对路径
                     rel_path="${src_file#$full_src/}"
                     dest_file="./$dest_path/$rel_path"
                     
-                    # 计算哈希
-                    src_hash=$(calculate_hash "$src_file")
-                    dest_hash=$(calculate_hash "$dest_file")
-                    
-                    # 处理文件
-                    if [ ! -f "$dest_file" ]; then
-                      # 文件在目标仓库不存在，直接复制
-                      echo "添加新文件: $rel_path"
-                      mkdir -p "$(dirname "$dest_file")"
-                      cp -f "$src_file" "$dest_file"
-                    elif [ "$src_hash" == "$dest_hash" ]; then
-                      # 文件相同，无需操作
-                      : # 无操作
+                    # 检查文件是否被修改
+                    if grep -q "^ M $dest_file" /tmp/target_status.txt || \
+                       grep -q "$dest_file" /tmp/target_diff.txt; then
+                      echo "保留修改的文件: $rel_path"
                     else
-                      # 文件不同，检查目标仓库是否修改过
-                      if git ls-files --error-unmatch "$dest_file" >/dev/null 2>&1; then
-                        # 文件在git中，检查是否被修改
-                        if git diff --quiet HEAD -- "$dest_file"; then
-                          # 未被修改，使用上游版本
-                          echo "更新文件（未被修改）: $rel_path"
-                          cp -f "$src_file" "$dest_file"
-                        else
-                          # 已被修改，保留目标仓库版本
-                          echo "保留修改的文件: $rel_path"
-                        fi
-                      else
-                        # 文件不在git中，视为新文件，使用上游版本
-                        echo "更新非git文件: $rel_path"
+                      # 文件未被修改，使用上游版本
+                      if [ -f "$dest_file" ]; then
+                        echo "更新未被修改的文件: $rel_path"
                         cp -f "$src_file" "$dest_file"
                       fi
                     fi
                   done
                   
-                  # 2. 处理上游删除的文件
-                  find "./$dest_path" -type f | while read -r dest_file; do
-                    rel_path="${dest_file#./$dest_path/}"
-                    src_file="$full_src/$rel_path"
-                    
-                    if [ ! -f "$src_file" ]; then
-                      # 文件在上游已删除
-                      if git ls-files --error-unmatch "$dest_file" >/dev/null 2>&1; then
-                        # 文件在git中，检查是否被修改
-                        if git diff --quiet HEAD -- "$dest_file"; then
-                          # 未被修改，删除文件
-                          echo "删除文件（未被修改）: $rel_path"
-                          rm -f "$dest_file"
-                        else
-                          # 已被修改，保留文件
-                          echo "保留已删除但被修改的文件: $rel_path"
-                        fi
-                      else
-                        # 文件不在git中，删除
-                        echo "删除非git文件: $rel_path"
-                        rm -f "$dest_file"
-                      fi
-                    fi
-                  done
-                  
                 else
-                  # 同步单个文件
+                  # 同步单个文件（优先保留目标仓库版本）
                   echo "正在同步文件..."
                   
-                  # 计算哈希
-                  src_hash=$(calculate_hash "$full_src")
-                  dest_hash=$(calculate_hash "./$dest_path")
-                  
-                  if [ ! -f "./$dest_path" ]; then
-                    # 文件不存在，直接复制
-                    echo "添加新文件: $dest_path"
-                    mkdir -p "$(dirname "./$dest_path")"
-                    cp -f "$full_src" "./$dest_path"
-                  elif [ "$src_hash" == "$dest_hash" ]; then
-                    # 文件相同，无需操作
-                    echo "文件相同，无需更新: $dest_path"
+                  # 检查文件是否被修改
+                  if grep -q "^ M $dest_path" /tmp/target_status.txt || \
+                     grep -q "$dest_path" /tmp/target_diff.txt; then
+                    echo "保留修改的文件: $dest_path"
                   else
-                    # 文件不同，检查目标仓库是否修改过
-                    if git ls-files --error-unmatch "./$dest_path" >/dev/null 2>&1; then
-                      # 文件在git中，检查是否被修改
-                      if git diff --quiet HEAD -- "./$dest_path"; then
-                        # 未被修改，使用上游版本
-                        echo "更新文件（未被修改）: $dest_path"
-                        cp -f "$full_src" "./$dest_path"
-                      else
-                        # 已被修改，保留目标仓库版本
-                        echo "保留修改的文件: $dest_path"
-                      fi
+                    if [ -f "./$dest_path" ]; then
+                      # 文件存在且未被修改，使用上游版本
+                      echo "更新未被修改的文件: $dest_path"
+                      cp -f "$full_src" "./$dest_path"
                     else
-                      # 文件不在git中，视为新文件，使用上游版本
-                      echo "更新非git文件: $dest_path"
+                      # 文件不存在，直接复制
+                      echo "添加新文件: $dest_path"
                       cp -f "$full_src" "./$dest_path"
                     fi
                   fi
@@ -441,7 +340,7 @@ jobs:
             "https://${{ secrets.PERSONAL_ACCESS_TOKEN }}@github.com/${{ env.TARGET_REPO }}.git"
       
       # Step 3: 提交和推送更改
-      - name: Commit and Push Changes
+      - name: Commit and Push Changes (Preserve Target Changes)
         run: |
           set -e
           
@@ -459,11 +358,14 @@ jobs:
             # 提交更改
             git commit -m "自动同步: 从上游仓库更新 $(date +'%Y-%m-%d %H:%M:%S')"
             
-            # 拉取最新更改
+            # 拉取最新更改（使用合并策略保留目标仓库更改）
             echo "拉取最新更改..."
-            git pull origin ${{ env.TARGET_BRANCH }} || true
+            git fetch origin
             
-            # 解决可能的冲突（保留目标仓库版本）
+            # 使用ours合并策略保留目标仓库更改
+            git merge -s recursive -Xours origin/${{ env.TARGET_BRANCH }} || true
+            
+            # 解决可能的冲突（优先保留目标仓库版本）
             resolve_conflicts() {
               local files_to_resolve=("README.md" "LICENSE")
               for file in "${files_to_resolve[@]}"; do
