@@ -1,8 +1,8 @@
 name: Sync and Merge Upstream Repositories
 on:
-  workflow_dispatch:
+  workflow_dispatch: # 手动触发
   schedule:
-    - cron: '0 */3 * * *'
+    - cron: '0 */3 * * *' # 每3小时自动触发一次
 
 jobs:
   sync-and-merge:
@@ -22,7 +22,24 @@ jobs:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
           fetch-depth: 0
       
-      # 确保初始提交存在
+      # 调试：打印检出信息
+      - name: Print Checkout Information
+        run: |
+          echo "当前工作目录: $(pwd)"
+          echo "仓库内容:"
+          ls -la
+      
+      # 确保.git目录存在
+      - name: Verify .git folder
+        run: |
+          if [ ! -d ".git" ]; then
+            echo "错误: .git目录不存在!"
+            exit 1
+          else
+            echo ".git目录验证通过"
+          fi
+      
+      # 确保有初始提交
       - name: Ensure initial commit exists
         run: |
           if git rev-parse --verify HEAD >/dev/null 2>&1; then
@@ -35,89 +52,118 @@ jobs:
             git push origin ${{ env.TARGET_BRANCH }}
           fi
       
-      # Step 1: 改进的同步逻辑 - 保留本地更改同时更新上游
-      - name: Smart Sync with Local Preservation
+      # Step 1: 支持无顶层目录仓库和通用嵌套目录的同步方案
+      - name: Sync from upstream repositories
         run: |
           set -euo pipefail
           
-          # 配置Git用户
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          
-          # 主同步函数 - 保留目标仓库更改
-          smart_sync() {
+          # 同步函数（支持目录和无顶层目录仓库）
+          sync_repo() {
             local repo_url=$1
             local branch=$2
-            local remote_name=$3
-            local mapping=$4
+            local clone_dir=$3
+            local mappings=$4
             
             echo "========================================"
             echo "处理仓库: $repo_url (分支: $branch)"
-            echo "远程名称: $remote_name"
-            echo "映射关系: $mapping"
+            echo "临时目录: $clone_dir"
+            echo "映射关系: $mappings"
             echo "----------------------------------------"
             
-            # 创建临时克隆目录
-            local clone_dir="temp_${remote_name}_clone"
+            # 克隆仓库
+            echo "正在克隆仓库..."
             git clone --quiet --depth 1 --branch "$branch" \
               "https://${{ secrets.PERSONAL_ACCESS_TOKEN }}@$repo_url" \
-              "$clone_dir"
+              "$clone_dir" || {
+              echo "错误: 克隆失败 - $repo_url"
+              return 1
+            }
+            
+            # 验证克隆结果
+            if [ ! -d "$clone_dir" ] || [ -z "$(ls -A "$clone_dir")" ]; then
+              echo "错误: 克隆目录为空 - $clone_dir"
+              return 1
+            fi
             
             # 解析映射关系
-            IFS=',' read -ra mappings <<< "$mapping"
-            for map in "${mappings[@]}"; do
-              # 去除空格
-              map=$(echo "$map" | tr -d '[:space:]')
-              IFS=':' read -r src_path dest_path <<< "$map"
+            IFS=',' read -ra mapping_list <<< "$mappings"
+            for mapping in "${mapping_list[@]}"; do
+              # 去除映射字符串中的空格
+              mapping=$(echo "$mapping" | tr -d '[:space:]')
               
-              # 特殊处理根目录映射
+              # 分割源路径和目标路径
+              IFS=':' read -r src_path dest_path <<< "$mapping"
+              
+              # 特殊处理：空源路径表示整个仓库根目录
               if [ -z "$src_path" ]; then
                 src_path="."
+                echo "检测到空源路径 - 将同步整个仓库根目录"
               fi
               
-              # 完整的源路径
-              local full_src="$clone_dir/$src_path"
+              # 处理路径格式
+              src_path="${src_path%/}"
+              dest_path="${dest_path%/}"
               
-              # 检查源路径是否存在
-              if [ ! -e "$full_src" ]; then
-                echo "警告: 源路径 '$full_src' 不存在，跳过"
-                continue
-              fi
+              # 完整源路径
+              full_src="$clone_dir/$src_path"
               
               echo "同步: $src_path → $dest_path"
               
-              # 确保目标目录存在
-              mkdir -p "$(dirname "$dest_path")"
-              
-              # 使用rsync进行同步
-              if [ -d "$full_src" ]; then
-                # 只添加新文件和更新未更改的文件
-                rsync -rlptD --ignore-existing --update --exclude='.git' "$full_src/" "$dest_path/"
+              if [ -e "$full_src" ]; then
+                # 创建目标目录的父目录
+                mkdir -p "$(dirname "./$dest_path")"
                 
-                # 添加详细的同步报告
-                echo "同步完成 - 详细变更:"
-                rsync -rlptDn --ignore-existing --update --exclude='.git' "$full_src/" "$dest_path/" | grep -v '^$' || true
-              else
-                # 对于文件，只添加不存在的文件
-                if [ ! -e "$dest_path" ]; then
-                  cp -f "$full_src" "$dest_path"
-                  echo "添加新文件: $dest_path"
+                # 执行同步（根据源类型使用不同参数）
+                if [ "$src_path" == "." ]; then
+                  # 同步整个仓库根目录（排除.git目录）
+                  echo "正在同步整个仓库根目录..."
+                  rsync -av --delete-after \
+                    --exclude='/.git' \
+                    "$clone_dir/" \
+                    "./$dest_path/"
+                elif [ -d "$full_src" ]; then
+                  # 同步目录
+                  echo "正在同步目录内容..."
+                  rsync -av --delete-after \
+                    "$full_src/" \
+                    "./$dest_path/"
                 else
-                  echo "文件已存在，保留目标版本: $dest_path"
+                  # 同步单个文件
+                  echo "正在同步文件..."
+                  rsync -av \
+                    "$full_src" \
+                    "./$dest_path"
                 fi
+                
+                # 验证同步结果
+                if [ -d "$full_src" ] && [ ! -d "./$dest_path" ]; then
+                  echo "错误: 目标目录未创建 - ./$dest_path"
+                  return 1
+                elif [ -f "$full_src" ] && [ ! -f "./$dest_path" ]; then
+                  echo "错误: 目标文件未创建 - ./$dest_path"
+                  return 1
+                fi
+                
+                echo "同步成功! 目标内容:"
+                ls -lA "./$dest_path"
+              else
+                echo "警告: 源路径不存在 - $full_src"
+                echo "目录结构:"
+                find "$clone_dir" -maxdepth 3 -type d | sort
+                return 1
               fi
             done
             
-            # 清理临时克隆目录
+            # 清理
+            echo "清理临时目录..."
             rm -rf "$clone_dir"
-            
             echo "----------------------------------------"
             echo "仓库处理完成: $repo_url"
             echo "========================================"
           }
           
           # 同步Siriling/5G-Modem-Support
-          smart_sync "github.com/Siriling/5G-Modem-Support.git" "main" "5G-Modem-Support" \
+          sync_repo "github.com/Siriling/5G-Modem-Support.git" "main" "5G-Modem-Support" \
             "fibocom-dial:fibocom-dial,\
             fibocom_MHI:fibocom_MHI,\
             fibocom_QMI_WWAN:fibocom_QMI_WWAN,\
@@ -140,21 +186,21 @@ jobs:
             sms-tool:sms-tool"
           
           # 同步immortalwrt/packages
-          smart_sync "github.com/immortalwrt/packages.git" "master" "immortalwrt-packages" \
+          sync_repo "github.com/immortalwrt/packages.git" "master" "immortalwrt-packages" \
             "lang/lua-neturl:lua-neturl,\
             net/keepalived:keepalived"
 
           # 同步immortalwrt/luci
-          smart_sync "github.com/immortalwrt/luci.git" "master" "immortalwrt-luci" \
+          sync_repo "github.com/immortalwrt/luci.git" "master" "immortalwrt-luci" \
             "applications/luci-app-keepalived:luci-app-keepalived"
           
           # 同步kenzok8/small-package
-          smart_sync "github.com/kenzok8/small-package.git" "main" "small-package" \
+          sync_repo "github.com/kenzok8/small-package.git" "main" "small-package" \
             "luci-app-adguardhome:luci-app-adguardhome,\
             adguardhome:adguardhome"
 
           # 同步kenzok8/small
-          smart_sync "github.com/kenzok8/small.git" "master" "small" \
+          sync_repo "github.com/kenzok8/small.git" "master" "small" \
             "brook:brook,\
             chinadns-ng:chinadns-ng,\
             dns2socks:dns2socks,\
@@ -199,7 +245,7 @@ jobs:
             xray-plugin:xray-plugin"
 
           # 同步kiddin9/kwrt-packages
-          smart_sync "github.com/kiddin9/kwrt-packages.git" "main" "kwrt-packages" \
+          sync_repo "github.com/kiddin9/kwrt-packages.git" "main" "kwrt-packages" \
             "luci-app-easymesh:luci-app-easymesh,\
             luci-app-leigod-acc:luci-app-leigod-acc,\
             leigod-acc:leigod-acc,\
@@ -221,67 +267,106 @@ jobs:
             openwrt-einat-ebpf:openwrt-einat-ebpf,\
             dns2socks-rust:dns2socks-rust"
           
+          # 最终验证
           echo "========================================"
           echo "所有仓库同步完成!"
+          echo "最终目录结构:"
+          find . -maxdepth 3 -type d | sort
           echo "========================================"
-      
-      # Step 2: 添加新文件并提交
-      - name: Add New Files and Commit
+
+      # 应用特定修改
+      - name: Apply Custom Fixes
         run: |
-          # 检查是否有新文件
-          new_files=$(git status --porcelain | grep '??' | cut -c4-)
-          if [ -n "$new_files" ]; then
-            echo "添加新文件:"
-            echo "$new_files"
-            git add $new_files
+          # 1. 修改luci-app-keepalived的Makefile
+          if [ -f "luci-app-keepalived/Makefile" ]; then
+            echo "修改luci-app-keepalived/Makefile: 更新luci.mk引用路径"
+            sed -i 's|include \.\./\.\./luci\.mk|include $(TOPDIR)/feeds/luci/luci.mk|' "luci-app-keepalived/Makefile"
+            
+            # 检查修改是否成功
+            if grep -q 'include $(TOPDIR)/feeds/luci/luci.mk' "luci-app-keepalived/Makefile"; then
+              echo "Makefile修改成功!"
+            else
+              echo "警告: Makefile修改失败，可能需要手动检查"
+            fi
+          else
+            echo "警告: luci-app-keepalived/Makefile 不存在，跳过修改"
           fi
+          
+          # 2. 修复po文件中的错别字
+          po_file="luci-app-keepalived/po/zh_Hans/keepalived.po"
+          if [ -f "$po_file" ]; then
+            echo "修复 $po_file 中的错别字"
+            # 使用精确匹配替换错误文本
+            sed -i 's/msgstr "这一概览显示本设备上 VRRP 实例德当前状态。"/msgstr "这一概览显示本设备上 VRRP 实例的当前状态。"/' "$po_file"
+            
+            # 检查修改是否成功
+            if grep -q 'msgstr "这一概览显示本设备上 VRRP 实例的当前状态。"' "$po_file"; then
+              echo "PO文件修改成功!"
+            else
+              echo "警告: PO文件修改失败，可能需要手动检查"
+              echo "当前文件内容:"
+              grep 'msgstr "这一概览显示本设备上 VRRP' "$po_file" || true
+            fi
+          else
+            echo "警告: $po_file 不存在，跳过修改"
+          fi
+      
+      # Step 2: 配置Git凭据
+      - name: Configure Git Credentials
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin \
+            "https://${{ secrets.PERSONAL_ACCESS_TOKEN }}@github.com/${{ env.TARGET_REPO }}.git"
+      
+      # Step 3: 提交和推送更改
+      - name: Commit and Push Changes
+        run: |
+          set -e
+          
+          # 切换到目标分支
+          git checkout ${{ env.TARGET_BRANCH }} || \
+            git checkout -b ${{ env.TARGET_BRANCH }}
+          
+          # 添加所有更改
+          git add .
           
           # 检查是否有更改
           if git diff-index --quiet HEAD; then
             echo "没有需要提交的更改"
           else
-            # 提交所有更改
-            git add -u
-            git commit -m "自动同步: 添加上游新文件 $(date +'%Y-%m-%d %H:%M:%S')"
-          fi
-      
-      # Step 3: 安全推送更改
-      - name: Safe Push Changes
-        run: |
-          git remote set-url origin "https://${{ secrets.PERSONAL_ACCESS_TOKEN }}@github.com/${{ env.TARGET_REPO }}.git"
-          
-          # 尝试推送新文件提交
-          if git show-ref --quiet refs/heads/${{ env.TARGET_BRANCH }}; then
-            echo "推送新文件..."
-            git push origin ${{ env.TARGET_BRANCH }}
-          fi
-          
-          # 检查是否有其他更改
-          if ! git diff-index --quiet HEAD; then
-            echo "检测到文件修改，需要手动处理"
-            # 创建问题报告
-            echo "::warning::检测到目标仓库文件修改，需要手动处理冲突"
-            # 列出修改的文件
-            modified_files=$(git diff --name-only)
-            echo "修改的文件:"
-            echo "$modified_files"
+            # 提交更改
+            git commit -m "自动同步: 从上游仓库更新 $(date +'%Y-%m-%d %H:%M:%S')"
             
-            # 创建问题报告文件
-            echo "## 上游同步报告" > sync_report.md
-            echo "**检测到目标仓库文件修改，需要手动处理**" >> sync_report.md
-            echo "### 修改的文件列表:" >> sync_report.md
-            echo "$modified_files" >> sync_report.md
-            echo "### 请检查这些文件并决定保留修改还是采用上游更新" >> sync_report.md
+            # 拉取最新更改（尝试变基）
+            echo "拉取最新更改..."
+            git pull --rebase origin ${{ env.TARGET_BRANCH }} || true
             
-            # 提交报告
-            git add sync_report.md
-            git commit -m "添加同步冲突报告"
+            # 解决可能的冲突（保留远程版本）
+            resolve_conflicts() {
+              local files_to_resolve=("README.md" "LICENSE")
+              for file in "${files_to_resolve[@]}"; do
+                if git ls-files --unmerged | grep -q "$file"; then
+                  echo "检测到冲突: $file, 保留远程版本..."
+                  git checkout --theirs "$file"
+                  git add "$file"
+                fi
+              done
+            }
+            
+            # 检查是否有未解决的冲突
+            if git ls-files --unmerged | grep -q .; then
+              echo "检测到冲突，尝试解决..."
+              resolve_conflicts
+              git rebase --continue
+            fi
+            
+            # 推送更改
+            echo "推送更改到远程仓库..."
             git push origin ${{ env.TARGET_BRANCH }}
-          else
-            echo "没有检测到文件修改"
+            echo "更改已成功推送!"
           fi
-      
-      # Step 4: 清理工作流运行记录
+      # Step 4: 清理7天前的工作流运行记录
       - name: Cleanup old workflow runs
         uses: Mattraks/delete-workflow-runs@main
         with:
