@@ -1,5 +1,4 @@
-name: Sync and Merge Upstream Repositories (Safe Mode)
-on:
+name: Sync and Merge Upstream Repositories
   workflow_dispatch:
   schedule:
     - cron: '0 */3 * * *'
