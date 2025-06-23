@@ -195,7 +195,7 @@ jobs:
           # 同步immortalwrt/luci
           sync_repo "github.com/immortalwrt/luci.git" "master" \
             "repos/immortalwrt-luci" \
-            "applications/luci-app-keepalived"
+            "applications/luci-app-keepalived:luci-app-keepalived"
           
           # 同步kiddin9/kwrt-packages
           sync_repo "github.com/kiddin9/kwrt-packages.git" "main" \
