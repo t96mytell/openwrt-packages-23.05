@@ -35,7 +35,7 @@ jobs:
             git push origin ${{ env.TARGET_BRANCH }}
           fi
       
-      # Step 1: 可靠的Git双向同步
+      # Step 1: 可靠的Git双向同步 (修复版)
       - name: Reliable Git Sync
         run: |
           set -euo pipefail
@@ -44,7 +44,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           
-          # 主同步函数 - 使用Git底层命令
+          # 主同步函数 - 使用替代方法获取上游内容
           reliable_sync() {
             local repo_url=$1
             local branch=$2
@@ -67,6 +67,12 @@ jobs:
             local temp_branch="sync-${remote_name}"
             git checkout -b "$temp_branch"
             
+            # 创建临时克隆目录
+            local clone_dir="upstream_${remote_name}"
+            git clone --quiet --depth 1 --branch "$branch" \
+              "https://${{ secrets.PERSONAL_ACCESS_TOKEN }}@$repo_url" \
+              "$clone_dir"
+            
             # 解析映射关系
             IFS=',' read -ra mappings <<< "$mapping"
             for map in "${mappings[@]}"; do
@@ -81,19 +87,21 @@ jobs:
               
               echo "同步: $src_path → $dest_path"
               
-              # 使用Git检出上游内容到临时目录
-              mkdir -p "temp_upstream"
-              git archive --remote="$remote_name" "$branch" "$src_path" | tar -x -C "temp_upstream"
+              # 完整的源路径
+              local full_src="$clone_dir/$src_path"
               
-              # 创建目标目录
-              mkdir -p "$(dirname "$dest_path")"
+              # 检查源路径是否存在
+              if [ ! -e "$full_src" ]; then
+                echo "警告: 源路径 '$full_src' 不存在，跳过"
+                continue
+              fi
               
               # 应用同步策略
-              if [ -d "temp_upstream/$src_path" ]; then
+              if [ -d "$full_src" ]; then
                 # 遍历上游文件
-                find "temp_upstream/$src_path" -type f | while read -r upstream_file; do
+                find "$full_src" -type f | while read -r upstream_file; do
                   # 计算相对路径
-                  rel_path="${upstream_file#temp_upstream/$src_path/}"
+                  rel_path="${upstream_file#$full_src/}"
                   target_file="$dest_path/$rel_path"
                   
                   # 排除特定文件
@@ -101,7 +109,8 @@ jobs:
                   if [ -n "$excludes" ]; then
                     IFS=',' read -ra exclude_list <<< "$excludes"
                     for pattern in "${exclude_list[@]}"; do
-                      if [[ "$rel_path" == $pattern ]]; then
+                      # 支持简单的通配符
+                      if [[ "$rel_path" == $pattern ]] || [[ "$rel_path" == *"/$pattern" ]] || [[ "$pattern" == *"*" && "$rel_path" == ${pattern} ]]; then
                         skip=true
                         break
                       fi
@@ -130,11 +139,46 @@ jobs:
                     git add "$target_file"
                   fi
                 done
+              else
+                # 处理单个文件
+                target_file="$dest_path"
+                rel_path=$(basename "$src_path")
+                
+                # 排除检查
+                skip=false
+                if [ -n "$excludes" ]; then
+                  IFS=',' read -ra exclude_list <<< "$excludes"
+                  for pattern in "${exclude_list[@]}"; do
+                    if [[ "$rel_path" == $pattern ]]; then
+                      skip=true
+                      break
+                    fi
+                  done
+                fi
+                
+                if $skip; then
+                  echo "排除文件: $rel_path"
+                else
+                  if [ -f "$target_file" ]; then
+                    if ! git diff --quiet HEAD -- "$target_file"; then
+                      echo "保留目标修改: $target_file"
+                    else
+                      echo "更新未修改文件: $target_file"
+                      cp -f "$full_src" "$target_file"
+                      git add "$target_file"
+                    fi
+                  else
+                    echo "添加新文件: $target_file"
+                    mkdir -p "$(dirname "$target_file")"
+                    cp -f "$full_src" "$target_file"
+                    git add "$target_file"
+                  fi
+                fi
               fi
-              
-              # 清理临时目录
-              rm -rf "temp_upstream"
             done
+            
+            # 清理临时克隆目录
+            rm -rf "$clone_dir"
             
             # 提交上游更改
             if ! git diff-index --cached --quiet HEAD; then
@@ -175,7 +219,7 @@ jobs:
           }
           
           # 同步Siriling/5G-Modem-Support
-          reliable_sync "github.com/Siriling/5G-Modem-Support.git" "main" "5G-Modem-Support" \
+          smart_sync "github.com/Siriling/5G-Modem-Support.git" "main" "5G-Modem-Support" \
             "fibocom-dial:fibocom-dial,\
             fibocom_MHI:fibocom_MHI,\
             fibocom_QMI_WWAN:fibocom_QMI_WWAN,\
@@ -198,21 +242,21 @@ jobs:
             sms-tool:sms-tool"
           
           # 同步immortalwrt/packages
-          reliable_sync "github.com/immortalwrt/packages.git" "master" "immortalwrt-packages" \
+          smart_sync "github.com/immortalwrt/packages.git" "master" "immortalwrt-packages" \
             "lang/lua-neturl:lua-neturl,\
             net/keepalived:keepalived"
 
           # 同步immortalwrt/luci
-          reliable_sync "github.com/immortalwrt/luci.git" "master" "immortalwrt-luci" \
+          smart_sync "github.com/immortalwrt/luci.git" "master" "immortalwrt-luci" \
             "applications/luci-app-keepalived:luci-app-keepalived"
           
           # 同步kenzok8/small-package
-          reliable_sync "github.com/kenzok8/small-package.git" "main" "small-package" \
+          smart_sync "github.com/kenzok8/small-package.git" "main" "small-package" \
             "luci-app-adguardhome:luci-app-adguardhome,\
             adguardhome:adguardhome"
 
           # 同步kenzok8/small
-          reliable_sync "github.com/kenzok8/small.git" "master" "small" \
+          smart_sync "github.com/kenzok8/small.git" "master" "small" \
             "brook:brook,\
             chinadns-ng:chinadns-ng,\
             dns2socks:dns2socks,\
@@ -257,7 +301,7 @@ jobs:
             xray-plugin:xray-plugin"
 
           # 同步kiddin9/kwrt-packages
-          reliable_sync "github.com/kiddin9/kwrt-packages.git" "main" "kwrt-packages" \
+          smart_sync "github.com/kiddin9/kwrt-packages.git" "main" "kwrt-packages" \
             "luci-app-easymesh:luci-app-easymesh,\
             luci-app-leigod-acc:luci-app-leigod-acc,\
             leigod-acc:leigod-acc,\
