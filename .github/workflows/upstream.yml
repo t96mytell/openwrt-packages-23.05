@@ -1,8 +1,8 @@
 name: Sync and Merge Upstream Repositories
 on:
-  workflow_dispatch: # 手动触发
+  workflow_dispatch:
   schedule:
-    - cron: '0 */3 * * *' # 每3小时自动触发一次
+    - cron: '0 */3 * * *'
 
 jobs:
   sync-and-merge:
@@ -11,7 +11,7 @@ jobs:
       PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
       TARGET_REPO: t96mytell/openwrt-packages-23.05
       TARGET_BRANCH: main
-
+    
     steps:
       # Step 0: Checkout Target Repository
       - name: Checkout Target Repository
@@ -21,7 +21,7 @@ jobs:
           ref: ${{ env.TARGET_BRANCH }}
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
           fetch-depth: 0
-
+      
       # 确保初始提交存在
       - name: Ensure initial commit exists
         run: |
@@ -34,140 +34,146 @@ jobs:
             git commit -m "Initial commit"
             git push origin ${{ env.TARGET_BRANCH }}
           fi
-
-      # Step 1: 同步上游仓库
-      - name: Smart Sync with Upstream Updates
+      
+      # Step 1: 可靠的Git双向同步
+      - name: Reliable Git Sync
         run: |
           set -euo pipefail
-
+          
           # 配置Git用户
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          # 主同步函数
-          smart_sync() {
+          
+          # 主同步函数 - 使用Git底层命令
+          reliable_sync() {
             local repo_url=$1
             local branch=$2
             local remote_name=$3
             local mapping=$4
             local excludes=${5:-}
-
+            
             echo "========================================"
             echo "处理仓库: $repo_url (分支: $branch)"
             echo "远程名称: $remote_name"
             echo "映射关系: $mapping"
             echo "排除规则: ${excludes:-无}"
             echo "----------------------------------------"
-
+            
             # 添加上游远程仓库
             git remote add "$remote_name" "https://${{ secrets.PERSONAL_ACCESS_TOKEN }}@$repo_url"
             git fetch "$remote_name" "$branch" --depth=1
-
-            # 创建临时合并分支
-            local temp_branch="merge-${remote_name}"
+            
+            # 创建临时工作分支
+            local temp_branch="sync-${remote_name}"
             git checkout -b "$temp_branch"
-
-            # 创建临时克隆目录
-            local clone_dir="temp_${remote_name}_clone"
-            git clone --quiet --depth 1 --branch "$branch" \
-              "https://${{ secrets.PERSONAL_ACCESS_TOKEN }}@$repo_url" \
-              "$clone_dir"
-
-            # 构建rsync排除参数
-            local rsync_excludes=()
-            if [ -n "$excludes" ]; then
-              IFS=',' read -ra exclude_list <<< "$excludes"
-              for pattern in "${exclude_list[@]}"; do
-                rsync_excludes+=(--exclude="$pattern")
-              done
-            fi
-
-            # 默认排除.git和.gitignore
-            rsync_excludes+=(--exclude='.git' --exclude='.gitignore')
-
-            echo "使用排除规则: ${rsync_excludes[*]}"
-
+            
             # 解析映射关系
             IFS=',' read -ra mappings <<< "$mapping"
             for map in "${mappings[@]}"; do
               # 去除空格
               map=$(echo "$map" | tr -d '[:space:]')
               IFS=':' read -r src_path dest_path <<< "$map"
-
+              
               # 特殊处理根目录映射
               if [ -z "$src_path" ]; then
                 src_path="."
               fi
-
-              # 完整的源路径
-              local full_src="$clone_dir/$src_path"
-
-              # 检查源路径是否存在
-              if [ ! -e "$full_src" ]; then
-                echo "警告: 源路径 '$full_src' 不存在，跳过"
-                continue
-              fi
-
+              
               echo "同步: $src_path → $dest_path"
-
-              # 确保目标目录存在
+              
+              # 使用Git检出上游内容到临时目录
+              mkdir -p "temp_upstream"
+              git archive --remote="$remote_name" "$branch" "$src_path" | tar -x -C "temp_upstream"
+              
+              # 创建目标目录
               mkdir -p "$(dirname "$dest_path")"
-
-              # 使用rsync进行同步 - 关键修复: 使用--update和--ignore-existing
-              if [ -d "$full_src" ]; then
-                # 同步目录 - 使用--update和--ignore-existing保留目标仓库的修改
-                rsync -rlptD --update --ignore-existing "${rsync_excludes[@]}" "$full_src/" "$dest_path/"
-              else
-                # 同步文件
-                rsync -rlptD --update --ignore-existing "${rsync_excludes[@]}" "$full_src" "$dest_path"
+              
+              # 应用同步策略
+              if [ -d "temp_upstream/$src_path" ]; then
+                # 遍历上游文件
+                find "temp_upstream/$src_path" -type f | while read -r upstream_file; do
+                  # 计算相对路径
+                  rel_path="${upstream_file#temp_upstream/$src_path/}"
+                  target_file="$dest_path/$rel_path"
+                  
+                  # 排除特定文件
+                  skip=false
+                  if [ -n "$excludes" ]; then
+                    IFS=',' read -ra exclude_list <<< "$excludes"
+                    for pattern in "${exclude_list[@]}"; do
+                      if [[ "$rel_path" == $pattern ]]; then
+                        skip=true
+                        break
+                      fi
+                    done
+                  fi
+                  
+                  if $skip; then
+                    echo "排除文件: $rel_path"
+                    continue
+                  fi
+                  
+                  # 检查文件在目标仓库的状态
+                  if [ -f "$target_file" ]; then
+                    # 检查文件是否在目标仓库被修改
+                    if ! git diff --quiet HEAD -- "$target_file"; then
+                      echo "保留目标修改: $target_file"
+                    else
+                      echo "更新未修改文件: $target_file"
+                      cp -f "$upstream_file" "$target_file"
+                      git add "$target_file"
+                    fi
+                  else
+                    echo "添加新文件: $target_file"
+                    mkdir -p "$(dirname "$target_file")"
+                    cp -f "$upstream_file" "$target_file"
+                    git add "$target_file"
+                  fi
+                done
               fi
-
-              # 添加详细的同步报告
-              echo "同步完成 - 详细变更:"
-              rsync -rlptDn --update --ignore-existing "${rsync_excludes[@]}" "$full_src/" "$dest_path/" | grep -v '^$' || true
+              
+              # 清理临时目录
+              rm -rf "temp_upstream"
             done
-
-            # 清理临时克隆目录
-            rm -rf "$clone_dir"
-
+            
             # 提交上游更改
-            git add .
-            if ! git diff-index --quiet HEAD; then
+            if ! git diff-index --cached --quiet HEAD; then
               git commit -m "Sync from ${remote_name} ${branch}"
               echo "已提交上游更新"
             else
               echo "没有需要提交的上游更新。"
             fi
-
-            # 合并回主分支 - 使用ours策略保留目标仓库更改
+            
+            # 合并回主分支
             git checkout ${{ env.TARGET_BRANCH }}
-
-            # 添加详细的合并前差异报告
-            echo "合并前差异报告:"
-            git diff HEAD "$temp_branch" --name-status || true
-
-            # 执行合并
-            git merge "$temp_branch" -m "Merge updates from ${remote_name}" -X ours --no-ff
-
-            # 添加详细的合并后状态
-            echo "合并后状态:"
-            git status -s
-
-            # 检查冲突
-            if git diff --name-only --diff-filter=U | grep -q .; then
-              echo "存在未解决的冲突，请手动处理"
-              exit 1
+            
+            # 检查是否有需要合并的更改
+            if git diff --quiet HEAD "$temp_branch"; then
+              echo "没有需要合并的更改"
+            else
+              echo "执行合并..."
+              git merge --no-commit "$temp_branch"
+              
+              # 检查冲突
+              if git diff --name-only --diff-filter=U | grep -q .; then
+                echo "检测到冲突，优先保留目标仓库版本"
+                git checkout --ours .
+                git add .
+              fi
+              
+              # 完成合并
+              git commit -m "Merge updates from ${remote_name}"
             fi
-
+            
             # 清理
             git branch -D "$temp_branch"
             git remote remove "$remote_name"
-
+            
             echo "----------------------------------------"
             echo "仓库处理完成: $repo_url"
             echo "========================================"
           }
-
+          
           # 同步Siriling/5G-Modem-Support
           smart_sync "github.com/Siriling/5G-Modem-Support.git" "main" "5G-Modem-Support" \
             "fibocom-dial:fibocom-dial,\
@@ -272,37 +278,35 @@ jobs:
             luci-app-einat:luci-app-einat,\
             openwrt-einat-ebpf:openwrt-einat-ebpf,\
             dns2socks-rust:dns2socks-rust"
-
+          
           echo "========================================"
           echo "所有仓库同步完成!"
           echo "========================================"
-
+      
       # Step 2: 推送更改
       - name: Push Changes
         run: |
           git remote set-url origin "https://${{ secrets.PERSONAL_ACCESS_TOKEN }}@github.com/${{ env.TARGET_REPO }}.git"
-
+          
           # 检查是否有未提交的更改
           if git diff-index --quiet HEAD; then
             echo "没有需要提交的更改"
           else
             # 添加所有更改
-            git add .
+            git add -A
             # 提交更改
-            git commit -m "自动同步: 从上游仓库更新 $(date +'%Y-%m-%d %H:%M:%S')"
+            git commit -m "自动同步: 更新上游仓库 $(date +'%Y-%m-%d %H:%M:%S')"
           fi
-
+          
           # 尝试推送
           echo "尝试推送更改到远程仓库..."
-          if ! git push origin ${{ env.TARGET_BRANCH }}; then
-            echo "推送失败，可能存在冲突或过时的本地分支"
-            echo "执行拉取并合并..."
-            git pull origin ${{ env.TARGET_BRANCH }} --no-rebase
+          while ! git push origin ${{ env.TARGET_BRANCH }}; do
+            echo "推送失败，执行拉取并变基..."
+            git pull origin ${{ env.TARGET_BRANCH }} --rebase
             echo "重新尝试推送..."
-            git push origin ${{ env.TARGET_BRANCH }}
-          fi
+          done
           echo "更改已成功推送!"
-
+      
       # Step 3: 清理工作流运行记录
       - name: Cleanup old workflow runs
         uses: Mattraks/delete-workflow-runs@main
