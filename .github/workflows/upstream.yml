@@ -52,12 +52,12 @@ jobs:
             git push origin ${{ env.TARGET_BRANCH }}
           fi
       
-      # Step 1: 支持无顶层目录仓库和通用嵌套目录的同步方案
-      - name: Sync from upstream repositories
+      # Step 1: 改进的同步方案 - 保留本地修改
+      - name: Sync from upstream repositories (Preserve Local Changes)
         run: |
           set -euo pipefail
           
-          # 同步函数（支持目录和无顶层目录仓库）
+          # 同步函数（保留本地修改）
           sync_repo() {
             local repo_url=$1
             local branch=$2
@@ -70,8 +70,8 @@ jobs:
             echo "映射关系: $mappings"
             echo "----------------------------------------"
             
-            # 克隆仓库
-            echo "正在克隆仓库..."
+            # 克隆上游仓库
+            echo "正在克隆上游仓库..."
             git clone --quiet --depth 1 --branch "$branch" \
               "https://${{ secrets.PERSONAL_ACCESS_TOKEN }}@$repo_url" \
               "$clone_dir" || {
@@ -113,37 +113,51 @@ jobs:
                 # 创建目标目录的父目录
                 mkdir -p "$(dirname "./$dest_path")"
                 
-                # 获取目标路径下所有文件
-                target_files=()
-                while IFS= read -r -d '' file; do
-                  target_files+=("$file")
-                done < <(find "./$dest_path" -type f -print0)
-
-                # 逐个检查文件状态并同步
-                for target_file in "${target_files[@]}"; do
-                  relative_path="${target_file#$PWD/}"
-                  remote_file="$full_src${relative_path}"
-
-                  if [ -f "$remote_file" ]; then
-                    # 如果本地文件未被修改，覆盖为远程版本
-                    if ! git diff --quiet HEAD "$target_file"; then
-                      echo "本地文件已修改，跳过同步: $target_file"
-                    else
-                      echo "同步远程文件到本地: $target_file"
-                      cp "$remote_file" "$target_file"
-                    fi
-                  fi
-                done
-
-                # 同步新增文件（仅目录）
+                # 执行同步（优先保留本地修改）
                 if [ "$src_path" == "." ]; then
-                  echo "正在同步整个仓库根目录..."
-                  rsync -av --exclude='/.git' "$clone_dir/" "./$dest_path/"
+                  # 同步整个仓库根目录（保留本地修改）
+                  echo "正在同步整个仓库根目录（保留本地修改）..."
+                  rsync -av --ignore-existing --exclude='/.git' \
+                    "$clone_dir/" \
+                    "./$dest_path/"
                 elif [ -d "$full_src" ]; then
-                  echo "正在同步目录新增文件..."
-                  rsync -av --exclude='/.git' "$full_src/" "./$dest_path/"
+                  # 同步目录（保留本地修改）
+                  echo "正在同步目录内容（保留本地修改）..."
+                  
+                  # 步骤1: 只复制目标目录中不存在的文件
+                  rsync -av --ignore-existing \
+                    "$full_src/" \
+                    "./$dest_path/"
+                    
+                  # 步骤2: 更新目标目录中存在的文件（但优先保留本地修改）
+                  rsync -av --update \
+                    "$full_src/" \
+                    "./$dest_path/"
+                else
+                  # 同步单个文件（只覆盖未修改的文件）
+                  echo "正在同步文件（保留本地修改）..."
+                  if [ ! -f "./$dest_path" ]; then
+                    # 文件不存在时直接复制
+                    rsync -av \
+                      "$full_src" \
+                      "./$dest_path"
+                  else
+                    # 文件存在时只更新旧文件
+                    rsync -av --update \
+                      "$full_src" \
+                      "./$dest_path"
+                  fi
                 fi
-
+                
+                # 验证同步结果
+                if [ -d "$full_src" ] && [ ! -d "./$dest_path" ]; then
+                  echo "错误: 目标目录未创建 - ./$dest_path"
+                  return 1
+                elif [ -f "$full_src" ] && [ ! -f "./$dest_path" ]; then
+                  echo "错误: 目标文件未创建 - ./$dest_path"
+                  return 1
+                fi
+                
                 echo "同步成功! 目标内容:"
                 ls -lA "./$dest_path"
               else
@@ -288,8 +302,8 @@ jobs:
           git remote set-url origin \
             "https://${{ secrets.PERSONAL_ACCESS_TOKEN }}@github.com/${{ env.TARGET_REPO }}.git"
       
-      # Step 3: 提交和推送更改
-      - name: Commit and Push Changes
+      # Step 3: 提交和推送更改（优先保留本地修改）
+      - name: Commit and Push Changes (Preserve Local)
         run: |
           set -e
           
@@ -297,33 +311,38 @@ jobs:
           git checkout ${{ env.TARGET_BRANCH }} || \
             git checkout -b ${{ env.TARGET_BRANCH }}
           
-          # 添加所有更改
+          # 添加所有更改（包括保留的本地修改）
           git add .
           
           # 检查是否有更改
           if git diff-index --quiet HEAD; then
             echo "没有需要提交的更改"
           else
-            # 提交更改
+            # 提交更改（包括保留的本地修改）
             git commit -m "自动同步: 从上游仓库更新 $(date +'%Y-%m-%d %H:%M:%S')"
             
-            # 拉取最新更改（尝试变基）
-            echo "拉取最新更改..."
-            git pull --rebase origin ${{ env.TARGET_BRANCH }} || true
+            # 拉取最新更改（使用合并策略保留本地修改）
+            echo "拉取最新更改（保留本地修改）..."
+            git fetch origin
+            git merge -X ours origin/${{ env.TARGET_BRANCH }} || true
             
-            # 解决冲突（保留本地版本）
+            # 解决可能的冲突（优先保留本地版本）
             resolve_conflicts() {
-              git ls-files --unmerged | awk '{print $1}' | while read -r file; do
-                git checkout --ours "$file"
-                git add "$file"
+              local files_to_resolve=("README.md" "LICENSE")
+              for file in "${files_to_resolve[@]}"; do
+                if git ls-files --unmerged | grep -q "$file"; then
+                  echo "检测到冲突: $file, 保留本地版本..."
+                  git checkout --ours "$file"
+                  git add "$file"
+                fi
               done
             }
             
             # 检查是否有未解决的冲突
             if git ls-files --unmerged | grep -q .; then
-              echo "检测到冲突，保留本地版本..."
+              echo "检测到冲突，尝试解决..."
               resolve_conflicts
-              git rebase --continue
+              git commit -m "解决冲突: 保留本地修改"
             fi
             
             # 推送更改
