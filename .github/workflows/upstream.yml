@@ -65,6 +65,12 @@ jobs:
             local temp_branch="merge-${remote_name}"
             git checkout -b "$temp_branch"
             
+            # 创建临时克隆目录
+            local clone_dir="temp_${remote_name}_clone"
+            git clone --quiet --depth 1 --branch "$branch" \
+              "https://${{ secrets.PERSONAL_ACCESS_TOKEN }}@$repo_url" \
+              "$clone_dir"
+            
             # 解析映射关系
             IFS=',' read -ra mappings <<< "$mapping"
             for map in "${mappings[@]}"; do
@@ -77,30 +83,34 @@ jobs:
                 src_path="."
               fi
               
-              # 创建目标目录
+              # 完整的源路径
+              local full_src="$clone_dir/$src_path"
+              
+              # 检查源路径是否存在
+              if [ ! -e "$full_src" ]; then
+                echo "警告: 源路径 '$full_src' 不存在，跳过"
+                continue
+              fi
+              
+              echo "同步: $src_path → $dest_path"
+              
+              # 确保目标目录存在
               mkdir -p "$(dirname "$dest_path")"
               
-              # 检出上游文件到目标路径（保留目标仓库目录结构）
-              # 注意：如果源路径是文件，则直接检出；如果是目录，则检出整个目录
-              if git ls-tree -r --name-only "${remote_name}/${branch}" -- "$src_path" > /dev/null 2>&1; then
-                # 将上游仓库的源路径内容检出到临时目录
-                mkdir -p "temp_sync"
-                git archive "${remote_name}/${branch}" "$src_path" | tar -x -C "temp_sync"
-                
-                # 移动文件到目标路径
-                if [ -f "temp_sync/$src_path" ]; then
-                  # 单个文件
-                  mv "temp_sync/$src_path" "$dest_path"
-                else
-                  # 目录
-                  mkdir -p "$dest_path"
-                  mv "temp_sync/$src_path"/* "$dest_path"/
-                fi
-                rm -rf "temp_sync"
+              # 使用rsync进行同步（避免mv命令的目录冲突）
+              if [ -d "$full_src" ]; then
+                # 同步目录
+                rsync -a --exclude='.git' "$full_src/" "$dest_path/"
               else
-                echo "警告: 源路径 '$src_path' 在上游仓库中不存在，跳过"
+                # 同步文件
+                rsync -a "$full_src" "$dest_path"
               fi
+              
+              echo "同步完成"
             done
+            
+            # 清理临时克隆目录
+            rm -rf "$clone_dir"
             
             # 提交上游更改
             git add .
@@ -245,9 +255,15 @@ jobs:
             git add .
             git commit -m "自动同步: 从上游仓库更新 $(date +'%Y-%m-%d %H:%M:%S')"
             
-            # 拉取最新更改（尝试变基）
-            echo "拉取最新更改..."
-            git pull origin ${{ env.TARGET_BRANCH }} --rebase --autostash || true
+            # 尝试变基
+            echo "拉取最新更改并变基..."
+            git pull --rebase origin ${{ env.TARGET_BRANCH }} || {
+              # 处理可能的冲突
+              echo "检测到冲突，使用目标仓库版本解决..."
+              git checkout --ours .
+              git add .
+              git rebase --continue
+            }
             
             # 推送更改
             echo "推送更改到远程仓库..."
