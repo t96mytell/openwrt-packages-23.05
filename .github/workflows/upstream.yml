@@ -36,7 +36,7 @@ jobs:
           fi
       
       # Step 1: 支持无顶层目录仓库和通用嵌套目录的同步方案
-      - name: Sync from upstream repositories
+      - name: Smart Sync from Upstream
         run: |
           set -euo pipefail
           
@@ -68,7 +68,9 @@ jobs:
             # 解析映射关系
             IFS=',' read -ra mappings <<< "$mapping"
             for map in "${mappings[@]}"; do
-              IFS=':' read -r src_path dest_path <<< "${map// /}"
+              # 去除空格
+              map=$(echo "$map" | tr -d '[:space:]')
+              IFS=':' read -r src_path dest_path <<< "$map"
               
               # 特殊处理根目录映射
               if [ -z "$src_path" ]; then
@@ -78,12 +80,25 @@ jobs:
               # 创建目标目录
               mkdir -p "$(dirname "$dest_path")"
               
-              # 检出上游文件到目标路径
-              git checkout "${remote_name}/${branch}" -- "$src_path"
-              if [ "$src_path" != "." ]; then
-                mkdir -p "$dest_path"
-                mv "$src_path"/* "$dest_path"/
-                rmdir "$src_path"
+              # 检出上游文件到目标路径（保留目标仓库目录结构）
+              # 注意：如果源路径是文件，则直接检出；如果是目录，则检出整个目录
+              if git ls-tree -r --name-only "${remote_name}/${branch}" -- "$src_path" > /dev/null 2>&1; then
+                # 将上游仓库的源路径内容检出到临时目录
+                mkdir -p "temp_sync"
+                git archive "${remote_name}/${branch}" "$src_path" | tar -x -C "temp_sync"
+                
+                # 移动文件到目标路径
+                if [ -f "temp_sync/$src_path" ]; then
+                  # 单个文件
+                  mv "temp_sync/$src_path" "$dest_path"
+                else
+                  # 目录
+                  mkdir -p "$dest_path"
+                  mv "temp_sync/$src_path"/* "$dest_path"/
+                fi
+                rm -rf "temp_sync"
+              else
+                echo "警告: 源路径 '$src_path' 在上游仓库中不存在，跳过"
               fi
             done
             
@@ -91,11 +106,13 @@ jobs:
             git add .
             if ! git diff-index --quiet HEAD; then
               git commit -m "Sync from ${remote_name} ${branch}"
+            else
+              echo "没有需要提交的更改。"
             fi
             
             # 合并回主分支（使用ours策略保留目标仓库更改）
             git checkout ${{ env.TARGET_BRANCH }}
-            git merge "$temp_branch" -m "Merge ${remote_name}" -X ours --allow-unrelated-histories --no-ff
+            git merge "$temp_branch" -m "Merge ${remote_name}" -X ours --allow-unrelated-histories
             
             # 清理
             git branch -D "$temp_branch"
@@ -107,8 +124,7 @@ jobs:
           }
           
           # 同步Siriling/5G-Modem-Support
-          sync_repo "github.com/Siriling/5G-Modem-Support.git" "main" \
-            "repos/5G-Modem-Support" \
+          smart_sync "github.com/Siriling/5G-Modem-Support.git" "main" "5G-Modem-Support" \
             "fibocom-dial:fibocom-dial,\
             fibocom_MHI:fibocom_MHI,\
             fibocom_QMI_WWAN:fibocom_QMI_WWAN,\
@@ -131,49 +147,21 @@ jobs:
             sms-tool:sms-tool"
           
           # 同步immortalwrt/packages
-          sync_repo "github.com/immortalwrt/packages.git" "master" \
-            "repos/immortalwrt-packages" \
+          smart_sync "github.com/immortalwrt/packages.git" "master" "immortalwrt-packages" \
             "lang/lua-neturl:lua-neturl,\
             net/keepalived:keepalived"
 
           # 同步immortalwrt/luci
-          sync_repo "github.com/immortalwrt/luci.git" "master" \
-            "repos/immortalwrt-luci" \
+          smart_sync "github.com/immortalwrt/luci.git" "master" "immortalwrt-luci" \
             "applications/luci-app-keepalived:luci-app-keepalived"
           
-          # 同步kiddin9/kwrt-packages
-          sync_repo "github.com/kiddin9/kwrt-packages.git" "main" \
-            "repos/kwrt-packages" \
-            "luci-app-easymesh:luci-app-easymesh,\
-            luci-app-leigod-acc:luci-app-leigod-acc,\
-            leigod-acc:leigod-acc,\
-            luci-app-uugamebooster:luci-app-uugamebooster,\
-            uugamebooster:uugamebooster,\
-            shadowsocks-libev:shadowsocks-libev,\
-            fullconenat-nft:fullconenat-nft,\
-            luci-app-dockerman:luci-app-dockerman,\
-            dockerd:dockerd,\
-            luci-app-pptp-server:luci-app-pptp-server,\
-            luci-app-pppoe-relay:luci-app-pppoe-relay,\
-            luci-app-pppoe-server:luci-app-pppoe-server,\
-            luci-app-openvpn-server:luci-app-openvpn-server,\
-            luci-app-openvpn-client:luci-app-openvpn-client,\
-            luci-app-ipsec-server:luci-app-ipsec-server,\
-            luci-app-ipsec-vpnd:luci-app-ipsec-vpnd,\
-            luci-app-zerotier:luci-app-zerotier,\
-            luci-app-einat:luci-app-einat,\
-            openwrt-einat-ebpf:openwrt-einat-ebpf,\
-            dns2socks-rust:dns2socks-rust"
-          
           # 同步kenzok8/small-package
-          sync_repo "github.com/kenzok8/small-package.git" "main" \
-            "repos/small-package" \
+          smart_sync "github.com/kenzok8/small-package.git" "main" "small-package" \
             "luci-app-adguardhome:luci-app-adguardhome,\
             adguardhome:adguardhome"
 
           # 同步kenzok8/small
-          sync_repo "github.com/kenzok8/small.git" "master" \
-            "repos/small" \
+          smart_sync "github.com/kenzok8/small.git" "master" "small" \
             "brook:brook,\
             chinadns-ng:chinadns-ng,\
             dns2socks:dns2socks,\
@@ -216,6 +204,29 @@ jobs:
             v2raya:v2raya,\
             xray-core:xray-core,\
             xray-plugin:xray-plugin"
+
+          # 同步kiddin9/kwrt-packages
+          smart_sync "github.com/kiddin9/kwrt-packages.git" "main" "kwrt-packages" \
+            "luci-app-easymesh:luci-app-easymesh,\
+            luci-app-leigod-acc:luci-app-leigod-acc,\
+            leigod-acc:leigod-acc,\
+            luci-app-uugamebooster:luci-app-uugamebooster,\
+            uugamebooster:uugamebooster,\
+            shadowsocks-libev:shadowsocks-libev,\
+            fullconenat-nft:fullconenat-nft,\
+            luci-app-dockerman:luci-app-dockerman,\
+            dockerd:dockerd,\
+            luci-app-pptp-server:luci-app-pptp-server,\
+            luci-app-pppoe-relay:luci-app-pppoe-relay,\
+            luci-app-pppoe-server:luci-app-pppoe-server,\
+            luci-app-openvpn-server:luci-app-openvpn-server,\
+            luci-app-openvpn-client:luci-app-openvpn-client,\
+            luci-app-ipsec-server:luci-app-ipsec-server,\
+            luci-app-ipsec-vpnd:luci-app-ipsec-vpnd,\
+            luci-app-zerotier:luci-app-zerotier,\
+            luci-app-einat:luci-app-einat,\
+            openwrt-einat-ebpf:openwrt-einat-ebpf,\
+            dns2socks-rust:dns2socks-rust"
           
           echo "========================================"
           echo "所有仓库同步完成!"
@@ -230,10 +241,16 @@ jobs:
           if git diff-index --quiet HEAD; then
             echo "没有需要提交的更改"
           else
-            # 拉取最新更改（处理可能的冲突）
-            git pull origin ${{ env.TARGET_BRANCH }} --rebase --autostash
+            # 提交所有更改
+            git add .
+            git commit -m "自动同步: 从上游仓库更新 $(date +'%Y-%m-%d %H:%M:%S')"
+            
+            # 拉取最新更改（尝试变基）
+            echo "拉取最新更改..."
+            git pull origin ${{ env.TARGET_BRANCH }} --rebase --autostash || true
             
             # 推送更改
+            echo "推送更改到远程仓库..."
             git push origin ${{ env.TARGET_BRANCH }}
             echo "更改已成功推送!"
           fi
