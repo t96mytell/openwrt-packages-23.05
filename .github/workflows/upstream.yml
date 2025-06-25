@@ -187,7 +187,7 @@ jobs:
 
           # 同步openwrt/packages
           sync_repo "github.com/openwrt/packages.git" "master" "openwrt-packages" \
-            "dockerd:dockerd,\
+            "utils/dockerd:dockerd,\
             net/keepalived:keepalived"
 
           # 同步openwrt/luci
