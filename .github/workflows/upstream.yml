@@ -286,25 +286,38 @@ jobs:
           find . -maxdepth 3 -type d | sort
           echo "========================================"
 
-      # 应用特定修改
-      - name: Apply Custom Fixes
+      # 应用全局Makefile修复
+      - name: Apply Global Makefile Fixes
         run: |
-          # 1. 修改luci-app-keepalived的Makefile
-          if [ -f "luci-app-keepalived/Makefile" ]; then
-            echo "修改luci-app-keepalived/Makefile: 更新luci.mk引用路径"
-            sed -i 's|include \.\./\.\./luci\.mk|include $(TOPDIR)/feeds/luci/luci.mk|' "luci-app-keepalived/Makefile"
-            
-            # 检查修改是否成功
-            if grep -q 'include $(TOPDIR)/feeds/luci/luci.mk' "luci-app-keepalived/Makefile"; then
-              echo "Makefile修改成功!"
-            else
-              echo "警告: Makefile修改失败，可能需要手动检查"
-            fi
-          else
-            echo "警告: luci-app-keepalived/Makefile 不存在，跳过修改"
-          fi
+          # 全局替换Makefile中的路径引用
+          echo "开始全局修复Makefile中的luci.mk引用路径..."
+          modified_count=0
           
-          # 2. 修复po文件中的错别字
+          # 查找所有Makefile文件
+          while IFS= read -r -d '' file; do
+            # 检查文件是否包含目标字符串
+            if grep -q 'include \.\./\.\./luci\.mk' "$file"; then
+              echo "修复 $file 中的luci.mk引用"
+              sed -i 's|include \.\./\.\./luci\.mk|include $(TOPDIR)/feeds/luci/luci.mk|g' "$file"
+              ((modified_count++))
+              
+              # 检查修改是否成功
+              if grep -q 'include $(TOPDIR)/feeds/luci/luci.mk' "$file"; then
+                echo "  → 修改成功!"
+              else
+                echo "  → 警告: 修改可能失败，请检查文件"
+              fi
+            fi
+          done < <(find . -type f -name "Makefile" -print0)
+          
+          echo "----------------------------------------"
+          echo "共修改了 $modified_count 个Makefile文件"
+          echo "========================================"
+      
+      # 修复特定PO文件
+      - name: Fix Specific PO File
+        run: |
+          # 修复luci-app-keepalived的po文件中的错别字
           po_file="luci-app-keepalived/po/zh_Hans/keepalived.po"
           if [ -f "$po_file" ]; then
             echo "修复 $po_file 中的错别字"
