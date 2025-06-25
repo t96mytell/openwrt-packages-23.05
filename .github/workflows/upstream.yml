@@ -294,6 +294,9 @@ jobs:
           modified_count=0
           skipped_count=0
           
+          # 临时禁用错误退出，因为grep可能返回1（未找到）是正常情况
+          set +e
+          
           # 查找所有文件夹下的Makefile文件
           while IFS= read -r -d '' file; do
             # 确保文件存在
@@ -302,7 +305,7 @@ jobs:
               continue
             fi
             
-            # 检查文件是否包含目标字符串
+            # 检查文件是否包含目标字符串 - 忽略grep的退出状态
             if grep -q 'include \.\./\.\./luci\.mk' "$file"; then
               echo "修复 $file 中的luci.mk引用"
               
@@ -322,13 +325,13 @@ jobs:
             fi
           done < <(find . -type f -name "Makefile" -print0)
           
+          # 重新启用错误退出
+          set -e
+          
           echo "----------------------------------------"
           echo "共检查了 $((modified_count + skipped_count)) 个Makefile文件"
           echo "修改了 $modified_count 个文件"
           echo "跳过了 $skipped_count 个文件"
-          if [ $modified_count -eq 0 ]; then
-            echo "没有需要修改的Makefile文件"
-          fi
           echo "========================================"
       
       # 修复特定PO文件
