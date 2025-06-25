@@ -292,26 +292,43 @@ jobs:
           # 全局替换Makefile中的路径引用
           echo "开始全局修复Makefile中的luci.mk引用路径..."
           modified_count=0
+          skipped_count=0
           
-          # 查找所有Makefile文件
+          # 查找所有文件夹下的Makefile文件
           while IFS= read -r -d '' file; do
+            # 确保文件存在
+            if [ ! -f "$file" ]; then
+              echo "警告: 文件 '$file' 在查找后不存在，跳过"
+              continue
+            fi
+            
             # 检查文件是否包含目标字符串
             if grep -q 'include \.\./\.\./luci\.mk' "$file"; then
               echo "修复 $file 中的luci.mk引用"
+              
+              # 执行替换
               sed -i 's|include \.\./\.\./luci\.mk|include $(TOPDIR)/feeds/luci/luci.mk|g' "$file"
-              ((modified_count++))
               
               # 检查修改是否成功
               if grep -q 'include $(TOPDIR)/feeds/luci/luci.mk' "$file"; then
                 echo "  → 修改成功!"
+                ((modified_count++))
               else
-                echo "  → 警告: 修改可能失败，请检查文件"
+                echo "  → 警告: 修改后未找到新字符串"
               fi
+            else
+              echo "跳过 $file - 不包含目标字符串"
+              ((skipped_count++))
             fi
           done < <(find . -type f -name "Makefile" -print0)
           
           echo "----------------------------------------"
-          echo "共修改了 $modified_count 个Makefile文件"
+          echo "共检查了 $((modified_count + skipped_count)) 个Makefile文件"
+          echo "修改了 $modified_count 个文件"
+          echo "跳过了 $skipped_count 个文件"
+          if [ $modified_count -eq 0 ]; then
+            echo "没有需要修改的Makefile文件"
+          fi
           echo "========================================"
       
       # 修复特定PO文件
