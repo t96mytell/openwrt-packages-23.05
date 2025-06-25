@@ -184,11 +184,27 @@ jobs:
             quectel_cm_5G:quectel_cm_5G,\
             sendat:sendat,\
             sms-tool:sms-tool"
+
+          # 同步openwrt/packages
+          sync_repo "github.com/openwrt/packages.git" "master" "openwrt-packages" \
+            "dockerd:dockerd,\
+            net/keepalived:keepalived"
+
+          # 同步openwrt/luci
+          sync_repo "github.com/openwrt/luci.git" "master" "openwrt-luci" \
+            "applications/luci-app-dockerman:luci-app-dockerman"
+
+          # 同步lede/packages
+          sync_repo "github.com/coolsnowwolf/packages.git" "master" "lede-packages" \
+            "net/uugamebooster:uugamebooster"
+
+          # 同步lede/luci
+          sync_repo "github.com/coolsnowwolf/luci.git" "master" "lede-luci" \
+            "applications/luci-app-uugamebooster:luci-app-uugamebooster"
           
           # 同步immortalwrt/packages
           sync_repo "github.com/immortalwrt/packages.git" "master" "immortalwrt-packages" \
-            "lang/lua-neturl:lua-neturl,\
-            net/keepalived:keepalived"
+            "lang/lua-neturl:lua-neturl"
 
           # 同步immortalwrt/luci
           sync_repo "github.com/immortalwrt/luci.git" "master" "immortalwrt-luci" \
@@ -249,12 +265,8 @@ jobs:
             "luci-app-easymesh:luci-app-easymesh,\
             luci-app-leigod-acc:luci-app-leigod-acc,\
             leigod-acc:leigod-acc,\
-            luci-app-uugamebooster:luci-app-uugamebooster,\
-            uugamebooster:uugamebooster,\
             shadowsocks-libev:shadowsocks-libev,\
             fullconenat-nft:fullconenat-nft,\
-            luci-app-dockerman:luci-app-dockerman,\
-            dockerd:dockerd,\
             luci-app-pptp-server:luci-app-pptp-server,\
             luci-app-pppoe-relay:luci-app-pppoe-relay,\
             luci-app-pppoe-server:luci-app-pppoe-server,\
