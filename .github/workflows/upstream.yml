@@ -286,15 +286,15 @@ jobs:
           find . -maxdepth 3 -type d | sort
           echo "========================================"
 
-      # 应用全局Makefile修复
-      - name: Apply Global Makefile Fixes
+      # Step 2: 应用全局Makefile修复 - Luci引用
+      - name: Apply Global Luci Makefile Fixes
         run: |
-          # 全局替换Makefile中的路径引用
+          # 全局替换luci.mk引用
           echo "开始全局修复Makefile中的luci.mk引用路径..."
           modified_count=0
           skipped_count=0
           
-          # 临时禁用错误退出，因为grep可能返回1（未找到）是正常情况
+          # 临时禁用错误退出
           set +e
           
           # 查找所有文件夹下的Makefile文件
@@ -305,7 +305,7 @@ jobs:
               continue
             fi
             
-            # 检查文件是否包含目标字符串 - 忽略grep的退出状态
+            # 检查文件是否包含luci目标字符串
             if grep -q 'include \.\./\.\./luci\.mk' "$file"; then
               echo "修复 $file 中的luci.mk引用"
               
@@ -320,7 +320,7 @@ jobs:
                 echo "  → 警告: 修改后未找到新字符串"
               fi
             else
-              echo "跳过 $file - 不包含目标字符串"
+              echo "跳过 $file - 不包含luci目标字符串"
               ((skipped_count++))
             fi
           done < <(find . -type f -name "Makefile" -print0)
@@ -334,7 +334,55 @@ jobs:
           echo "跳过了 $skipped_count 个文件"
           echo "========================================"
       
-      # 修复特定PO文件
+      # Step 3: 应用全局Makefile修复 - Golang引用
+      - name: Apply Global Golang Makefile Fixes
+        run: |
+          # 全局替换golang-package.mk引用
+          echo "开始全局修复Makefile中的golang-package.mk引用路径..."
+          modified_count=0
+          skipped_count=0
+          
+          # 临时禁用错误退出
+          set +e
+          
+          # 查找所有文件夹下的Makefile文件
+          while IFS= read -r -d '' file; do
+            # 确保文件存在
+            if [ ! -f "$file" ]; then
+              echo "警告: 文件 '$file' 在查找后不存在，跳过"
+              continue
+            fi
+            
+            # 检查文件是否包含golang目标字符串
+            if grep -q 'include \.\./\.\./lang/golang/golang-package\.mk' "$file"; then
+              echo "修复 $file 中的golang-package.mk引用"
+              
+              # 执行替换
+              sed -i 's|include \.\./\.\./lang/golang/golang-package\.mk|include $(TOPDIR)/feeds/packages/lang/golang/golang-package.mk|g' "$file"
+              
+              # 检查修改是否成功
+              if grep -q 'include $(TOPDIR)/feeds/packages/lang/golang/golang-package.mk' "$file"; then
+                echo "  → 修改成功!"
+                ((modified_count++))
+              else
+                echo "  → 警告: 修改后未找到新字符串"
+              fi
+            else
+              echo "跳过 $file - 不包含golang目标字符串"
+              ((skipped_count++))
+            fi
+          done < <(find . -type f -name "Makefile" -print0)
+          
+          # 重新启用错误退出
+          set -e
+          
+          echo "----------------------------------------"
+          echo "共检查了 $((modified_count + skipped_count)) 个Makefile文件"
+          echo "修改了 $modified_count 个文件"
+          echo "跳过了 $skipped_count 个文件"
+          echo "========================================"
+      
+      # Step 4: 修复特定PO文件
       - name: Fix Specific PO File
         run: |
           # 修复luci-app-keepalived的po文件中的错别字
@@ -356,7 +404,7 @@ jobs:
             echo "警告: $po_file 不存在，跳过修改"
           fi
       
-      # Step 2: 配置Git凭据
+      # Step 5: 配置Git凭据
       - name: Configure Git Credentials
         run: |
           git config --global user.name "github-actions[bot]"
@@ -364,7 +412,7 @@ jobs:
           git remote set-url origin \
             "https://${{ secrets.PERSONAL_ACCESS_TOKEN }}@github.com/${{ env.TARGET_REPO }}.git"
       
-      # Step 3: 提交和推送更改
+      # Step 6: 提交和推送更改
       - name: Commit and Push Changes
         run: |
           set -e
@@ -411,7 +459,7 @@ jobs:
             git push origin ${{ env.TARGET_BRANCH }}
             echo "更改已成功推送!"
           fi
-      # Step 4: 清理7天前的工作流运行记录
+      # Step 7: 清理7天前的工作流运行记录
       - name: Cleanup old workflow runs
         uses: Mattraks/delete-workflow-runs@main
         with:
