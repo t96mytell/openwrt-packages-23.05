@@ -187,8 +187,7 @@ jobs:
 
           # 同步openwrt/packages
           sync_repo "github.com/openwrt/packages.git" "master" "openwrt-packages" \
-            "utils/dockerd:dockerd,\
-            net/keepalived:keepalived"
+            "net/keepalived:keepalived"
 
           # 同步openwrt/luci
           sync_repo "github.com/openwrt/luci.git" "master" "openwrt-luci" \
@@ -277,7 +276,8 @@ jobs:
             luci-app-zerotier:luci-app-zerotier,\
             luci-app-einat:luci-app-einat,\
             openwrt-einat-ebpf:openwrt-einat-ebpf,\
-            dns2socks-rust:dns2socks-rust"
+            dns2socks-rust:dns2socks-rust,\
+            dockerd:dockerd"
           
           # 最终验证
           echo "========================================"
