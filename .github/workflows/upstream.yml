@@ -135,6 +135,8 @@ jobs:
                   rsync -av --delete-after \
                     --exclude='/.git' \
                     --exclude='/.github' \
+                    --exclude='/LICENSE' \
+                    --exclude='/README.md' \
                     "$clone_dir/" \
                     "./$dest_path/"
                 elif [ -d "$full_src" ]; then
