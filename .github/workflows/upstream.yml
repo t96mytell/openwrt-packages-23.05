@@ -197,8 +197,8 @@ jobs:
             "net/keepalived:keepalived"
 
           # 同步openwrt/luci
-          #sync_repo "github.com/openwrt/luci.git" "master" "openwrt-luci" \
-          #  "applications/luci-app-dockerman:luci-app-dockerman"
+          sync_repo "github.com/openwrt/luci.git" "master" "openwrt-luci" \
+            ""
 
           # 同步lede/packages
           sync_repo "github.com/coolsnowwolf/packages.git" "master" "lede-packages" \
