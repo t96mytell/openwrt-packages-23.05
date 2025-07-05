@@ -94,6 +94,12 @@ jobs:
               # 分割源路径和目标路径
               IFS=':' read -r src_path dest_path <<< "$mapping"
               
+              # 验证目标路径 - 禁止使用根目录(.)
+              if [ "$dest_path" == "." ]; then
+                echo "错误: 目标路径不能是根目录(.) - 请指定具体路径"
+                return 1
+              fi
+              
               # 特殊处理：空源路径表示整个仓库根目录
               if [ -z "$src_path" ]; then
                 src_path="."
@@ -119,6 +125,7 @@ jobs:
                   echo "正在同步整个仓库根目录..."
                   rsync -av --delete-after \
                     --exclude='/.git' \
+                    --exclude='/.github' \
                     "$clone_dir/" \
                     "./$dest_path/"
                 elif [ -d "$full_src" ]; then
