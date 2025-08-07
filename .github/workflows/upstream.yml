@@ -279,6 +279,10 @@ jobs:
             xray-core:xray-core,\
             xray-plugin:xray-plugin"
 
+          # 同步fw876/helloworld
+          sync_repo "github.com/fw876/helloworld.git" "master" "helloworld" \
+            "dns2socks-rust:dns2socks-rust"
+
           # 同步kiddin9/kwrt-packages
           sync_repo "github.com/kiddin9/kwrt-packages.git" "main" "kwrt-packages" \
             "luci-app-easymesh:luci-app-easymesh,\
