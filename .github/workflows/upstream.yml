@@ -195,6 +195,7 @@ jobs:
             luci-app-usbmodem:luci-app-usbmodem,\
             meig-cm:meig-cm,\
             meig_QMI_WWAN:meig_QMI_WWAN,\
+            ndisc:ndisc,\
             quectel_Gobinet:quectel_Gobinet,\
             quectel_MHI:quectel_MHI,\
             quectel_QMI_WWAN:quectel_QMI_WWAN,\
