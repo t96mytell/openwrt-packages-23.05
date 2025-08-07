@@ -296,7 +296,6 @@ jobs:
             luci-app-zerotier:luci-app-zerotier,\
             luci-app-einat:luci-app-einat,\
             openwrt-einat-ebpf:openwrt-einat-ebpf,\
-            dns2socks-rust:dns2socks-rust,\
             dockerd:dockerd"
           
           # 最终验证
