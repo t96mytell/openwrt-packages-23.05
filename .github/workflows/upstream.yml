@@ -233,8 +233,7 @@ jobs:
           sync_repo "github.com/kenzok8/small-package.git" "main" "small-package" \
             "luci-app-adguardhome:luci-app-adguardhome,\
             adguardhome:adguardhome,\
-            fullconenat-nft:fullconenat-nft,\
-            dockerd:dockerd"
+            fullconenat-nft:fullconenat-nft"
 
           # 同步kenzok8/small
           sync_repo "github.com/kenzok8/small.git" "master" "small" \
@@ -426,6 +425,20 @@ jobs:
           else
             echo "警告: $po_file 不存在，跳过修改"
           fi
+
+      # Step : docker依赖补丁
+      - name: Patch dockerd Makefile DEPENDS
+        run: |
+          makefile="dockerd/Makefile"
+          patchfile=".github/workflows/docker_depends.sed"
+          if [ -f "$makefile" ] && [ -f "$patchfile" ]; then
+            echo "开始用 $patchfile 替换 $makefile 的 DEPENDS 字段"
+            sed -i -f "$patchfile" "$makefile"
+            echo "替换完成"
+          else
+            echo "警告: $makefile 或 $patchfile 不存在，跳过替换"
+          fi
+
       
       # Step 5: 配置Git凭据
       - name: Configure Git Credentials
