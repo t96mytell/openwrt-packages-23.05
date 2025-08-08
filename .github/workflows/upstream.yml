@@ -530,7 +530,7 @@ jobs:
             REPORT+="跳过：dockerd.uci-defaults 文件不存在\n"
           fi
 
-          # 最终报告（直接输出 REPORT，不含任何步骤前缀）
+          # 最终报告
           echo -e "\n===== 合并操作报告 ====="
           echo -e "$REPORT"
 
