@@ -299,7 +299,8 @@ jobs:
             luci-app-ipsec-vpnd:luci-app-ipsec-vpnd,\
             luci-app-zerotier:luci-app-zerotier,\
             luci-app-einat:luci-app-einat,\
-            openwrt-einat-ebpf:openwrt-einat-ebpf"
+            openwrt-einat-ebpf:openwrt-einat-ebpf,\
+            dockerd:dockerd"
           
           # 最终验证
           echo "========================================"
@@ -425,20 +426,6 @@ jobs:
           else
             echo "警告: $po_file 不存在，跳过修改"
           fi
-
-      # Step : docker依赖补丁
-      - name: Patch dockerd Makefile DEPENDS
-        run: |
-          makefile="dockerd/Makefile"
-          patchfile=".github/workflows/patch/docker_depends.sed"
-          if [ -f "$makefile" ] && [ -f "$patchfile" ]; then
-            echo "开始用 $patchfile 替换 $makefile 的 DEPENDS 字段"
-            sed -i -f "$patchfile" "$makefile"
-            echo "替换完成"
-          else
-            echo "警告: $makefile 或 $patchfile 不存在，跳过替换"
-          fi
-
       
       # Step 5: 配置Git凭据
       - name: Configure Git Credentials
