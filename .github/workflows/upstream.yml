@@ -214,7 +214,8 @@ jobs:
 
           # 同步lede/packages
           sync_repo "github.com/coolsnowwolf/packages.git" "master" "lede-packages" \
-            "net/uugamebooster:uugamebooster"
+            "net/uugamebooster:uugamebooster,\
+            utils/containerd:containerd"
 
           # 同步lede/luci
           sync_repo "github.com/coolsnowwolf/luci.git" "master" "lede-luci" \
