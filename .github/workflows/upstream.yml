@@ -502,27 +502,32 @@ jobs:
           # 步骤 4: 添加 UCI 默认配置（在安装段中插入）
           echo "步骤 4: 添加 UCI 默认配置"
           INSTALL_ANCHOR='$(INSTALL_BIN) $(PKG_BUILD_DIR)/bundles/binary-daemon/docker-proxy $(1)/usr/bin/'
-          if grep -q "$INSTALL_ANCHOR" "$MAKEFILE"; then
-            tmpfile=$(mktemp)
-            awk -v anchor="$INSTALL_ANCHOR" 'BEGIN { added=0 }
-              {
-                print
-                if (index($0, anchor) && !added) {
-                  print "\t$(INSTALL_DIR) $(1)/etc/uci-defaults"
-                  print "\t$(INSTALL_DATA) ./files/dockerd.uci-defaults $(1)/etc/uci-defaults/dockerd"
-                  added=1
+          if [ -f "./files/dockerd.uci-defaults" ]; then
+            if grep -q "$INSTALL_ANCHOR" "$MAKEFILE"; then
+              tmpfile=$(mktemp)
+              awk -v anchor="$INSTALL_ANCHOR" 'BEGIN { added=0 }
+                {
+                  print
+                  if (index($0, anchor) && !added) {
+                    print "\t$(INSTALL_DIR) $(1)/etc/uci-defaults"
+                    print "\t$(INSTALL_DATA) ./files/dockerd.uci-defaults $(1)/etc/uci-defaults/dockerd"
+                    added=1
+                  }
                 }
-              }
-            ' "$MAKEFILE" > "$tmpfile" && mv "$tmpfile" "$MAKEFILE"
+              ' "$MAKEFILE" > "$tmpfile" && mv "$tmpfile" "$MAKEFILE"
 
-            if grep -q 'etc/uci-defaults' "$MAKEFILE"; then
-              REPORT+="已添加 UCI 默认配置\n"
+              if grep -q 'etc/uci-defaults' "$MAKEFILE"; then
+                REPORT+="已添加 UCI 默认配置\n"
+              else
+                REPORT+="添加 UCI 默认配置失败\n"
+                sed -n '/define Package\/dockerd\/install/,/endef/p' "$MAKEFILE" || true
+              fi
             else
-              REPORT+="添加 UCI 默认配置失败\n"
-              sed -n '/define Package\/dockerd\/install/,/endef/p' "$MAKEFILE" || true
+              REPORT+="跳过：未找到安装锚点\n"
             fi
           else
-            REPORT+="跳过：未找到安装锚点\n"
+            echo "警告: ./files/dockerd.uci-defaults 文件不存在，跳过步骤4的 UCI 配置添加"
+            REPORT+="跳过：dockerd.uci-defaults 文件不存在\n"
           fi
 
           # 最终报告（直接输出 REPORT，不含任何步骤前缀）
