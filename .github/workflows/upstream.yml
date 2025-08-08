@@ -430,7 +430,7 @@ jobs:
       - name: Patch dockerd Makefile DEPENDS
         run: |
           makefile="dockerd/Makefile"
-          patchfile=".github/workflows/docker_depends.sed"
+          patchfile=".github/workflows/patch/docker_depends.sed"
           if [ -f "$makefile" ] && [ -f "$patchfile" ]; then
             echo "开始用 $patchfile 替换 $makefile 的 DEPENDS 字段"
             sed -i -f "$patchfile" "$makefile"
