@@ -1,8 +1,8 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=dockerd
-PKG_VERSION:=27.3.1
-PKG_RELEASE:=6
+PKG_VERSION:=28.3.3
+PKG_RELEASE:=1
 PKG_LICENSE:=Apache-2.0
 PKG_LICENSE_FILES:=LICENSE
 
@@ -10,8 +10,8 @@ PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_GIT_URL:=github.com/moby/moby
 PKG_GIT_REF:=v$(PKG_VERSION)
 PKG_SOURCE_URL:=https://codeload.$(PKG_GIT_URL)/tar.gz/$(PKG_GIT_REF)?
-PKG_HASH:=skip
-PKG_GIT_SHORT_COMMIT:=41ca978 # SHA1 used within the docker executables
+PKG_HASH:=3727c8963ab4bcff12291e99e4d4a6b9a29ace5236fd245717bbff648f15f8cd
+PKG_GIT_SHORT_COMMIT:=c710b88 # SHA1 used within the docker executables
 
 PKG_MAINTAINER:=Gerard Ryan <G.M0N3Y.2503@gmail.com>
 
@@ -48,7 +48,8 @@ define Package/dockerd
     +tini \
     +uci-firewall \
     +fuse-overlayfs +cgroupfs-mount \
-    +kmod-vxlan +kmod-macvlan +kmod-dummy +kmod-crypto-gcm +kmod-crypto-seqiv +kmod-crypto-ghash +kmod-ipsec +kmod-nf-nathelper +kmod-nf-nathelper-extra +btrfs-progs \
+    +kmod-vxlan +kmod-macvlan +kmod-dummy +kmod-crypto-gcm +kmod-crypto-seqiv +kmod-crypto-ghash \
+    +kmod-ipsec +kmod-nf-nathelper +kmod-nf-nathelper-extra +btrfs-progs \
     @!(mips||mips64||mipsel)
   USERID:=docker:docker
   MENU:=1
@@ -73,7 +74,7 @@ define EnsureVendoredVersion
 		DEP_VER=$$$$( grep --only-matching --perl-regexp '(?<=PKG_VERSION:=)(.*)' "$(1)" ); \
 		VEN_VER=$$$$( grep --only-matching --perl-regexp '(?<=_VERSION:=v)(.*)(?=})' "$(PKG_BUILD_DIR)/hack/dockerfile/install/$(2)" ); \
 		if [ "$$$${VEN_VER}" != "$$$${DEP_VER}" ]; then \
-			echo "ERROR: $(PKG_NAME) Expected 'PKG_VERSION:=$$$${VEN_VER}' in '$(1)', found 'PKG_VERSION:=$$$${DEP_VER}'"; \
+			echo "ERROR: Expected 'PKG_VERSION:=$$$${VEN_VER}' in '$(1)', found 'PKG_VERSION:=$$$${DEP_VER}'"; \
 			exit 1; \
 		fi \
 	)
@@ -102,7 +103,7 @@ define Build/Prepare
 
 	# Verify CLI is the same version
 	( \
-		CLI_MAKEFILE="../../packages/utils/docker/Makefile"; \
+		CLI_MAKEFILE="../docker/Makefile"; \
 		CLI_VERSION=$$$$( grep --only-matching --perl-regexp '(?<=PKG_VERSION:=)(.*)' "$$$${CLI_MAKEFILE}" ); \
 		if [ "$$$${CLI_VERSION}" != "$(PKG_VERSION)" ]; then \
 			echo "ERROR: Expected 'PKG_VERSION:=$(PKG_VERSION)' in '$$$${CLI_MAKEFILE}', found 'PKG_VERSION:=$$$${CLI_VERSION}'"; \
@@ -143,7 +144,6 @@ define Package/dockerd/install
 	$(INSTALL_DIR) $(1)/usr/bin/
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/bundles/binary-daemon/dockerd $(1)/usr/bin/
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/bundles/binary-daemon/docker-proxy $(1)/usr/bin/
-
 	$(INSTALL_DIR) $(1)/etc/uci-defaults
 	$(INSTALL_DATA) ./files/dockerd.uci-defaults $(1)/etc/uci-defaults/dockerd
 
