@@ -1,4 +1,4 @@
-name: Sync and Merge Upstream Repositories - test
+name: Sync and Merge Upstream Repositories
 on:
   workflow_dispatch: # 手动触发
   schedule:
@@ -7,11 +7,8 @@ on:
 jobs:
   sync-and-merge:
     runs-on: ubuntu-latest
-    permissions:
-      actions: write
-      contents: write 
     env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
       TARGET_REPO: t96mytell/openwrt-packages-23.05
       TARGET_BRANCH: main
     
@@ -22,7 +19,7 @@ jobs:
         with:
           repository: ${{ env.TARGET_REPO }}
           ref: ${{ env.TARGET_BRANCH }}
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
           fetch-depth: 0
       
       # 调试：打印检出信息
@@ -55,17 +52,26 @@ jobs:
             git push origin ${{ env.TARGET_BRANCH }}
           fi
       
-      # Step 1: 通用嵌套目录同步方案
+      # Step 1: 支持无顶层目录仓库和通用嵌套目录的同步方案
       - name: Sync from upstream repositories
         run: |
           set -euo pipefail
           
-          # 改进的同步函数
+          # 同步函数（支持目录和无顶层目录仓库）
           sync_repo() {
             local repo_url=$1
             local branch=$2
             local clone_dir=$3
             local mappings=$4
+            
+            # 检查映射关系是否为空 - 如果为空则跳过
+            if [ -z "$mappings" ]; then
+              echo "========================================"
+              echo "跳过仓库: $repo_url (分支: $branch)"
+              echo "原因: 映射关系为空"
+              echo "========================================"
+              return 0
+            fi
             
             echo "========================================"
             echo "处理仓库: $repo_url (分支: $branch)"
@@ -76,7 +82,7 @@ jobs:
             # 克隆仓库
             echo "正在克隆仓库..."
             git clone --quiet --depth 1 --branch "$branch" \
-              "https://${{ secrets.GITHUB_TOKEN }}@$repo_url" \
+              "https://${{ secrets.PERSONAL_ACCESS_TOKEN }}@$repo_url" \
               "$clone_dir" || {
               echo "错误: 克隆失败 - $repo_url"
               return 1
@@ -97,6 +103,18 @@ jobs:
               # 分割源路径和目标路径
               IFS=':' read -r src_path dest_path <<< "$mapping"
               
+              # 验证目标路径 - 禁止使用根目录(.)
+              if [ -z "$dest_path" ] || [ "$dest_path" == "." ]; then
+                echo "错误: 目标路径不能为空或根目录(.) - 请指定具体路径"
+                return 1
+              fi
+              
+              # 特殊处理：空源路径表示整个仓库根目录
+              if [ -z "$src_path" ]; then
+                src_path="."
+                echo "检测到空源路径 - 将同步整个仓库根目录"
+              fi
+              
               # 处理路径格式
               src_path="${src_path%/}"
               dest_path="${dest_path%/}"
@@ -106,25 +124,48 @@ jobs:
               
               echo "同步: $src_path → $dest_path"
               
-              if [ -d "$full_src" ]; then
+              if [ -e "$full_src" ]; then
                 # 创建目标目录的父目录
                 mkdir -p "$(dirname "./$dest_path")"
                 
-                # 执行同步
-                echo "正在同步目录内容..."
-                rsync -av --delete-after \
-                  "$full_src/" \
-                  "./$dest_path/"
+                # 执行同步（根据源类型使用不同参数）
+                if [ "$src_path" == "." ]; then
+                  # 同步整个仓库根目录（排除.git目录）
+                  echo "正在同步整个仓库根目录..."
+                  rsync -av --delete-after \
+                    --exclude='/.git' \
+                    --exclude='/.github' \
+                    --exclude='/LICENSE' \
+                    --exclude='/README.md' \
+                    "$clone_dir/" \
+                    "./$dest_path/"
+                elif [ -d "$full_src" ]; then
+                  # 同步目录
+                  echo "正在同步目录内容..."
+                  rsync -av --delete-after \
+                    "$full_src/" \
+                    "./$dest_path/"
+                else
+                  # 同步单个文件
+                  echo "正在同步文件..."
+                  rsync -av \
+                    "$full_src" \
+                    "./$dest_path"
+                fi
                 
                 # 验证同步结果
-                if [ ! -d "./$dest_path" ]; then
+                if [ -d "$full_src" ] && [ ! -d "./$dest_path" ]; then
                   echo "错误: 目标目录未创建 - ./$dest_path"
                   return 1
+                elif [ -f "$full_src" ] && [ ! -f "./$dest_path" ]; then
+                  echo "错误: 目标文件未创建 - ./$dest_path"
+                  return 1
                 fi
-                echo "同步成功! 目标目录内容:"
+                
+                echo "同步成功! 目标内容:"
                 ls -lA "./$dest_path"
               else
-                echo "警告: 源目录不存在 - $full_src"
+                echo "警告: 源路径不存在 - $full_src"
                 echo "目录结构:"
                 find "$clone_dir" -maxdepth 3 -type d | sort
                 return 1
@@ -140,8 +181,7 @@ jobs:
           }
           
           # 同步Siriling/5G-Modem-Support
-          sync_repo "github.com/Siriling/5G-Modem-Support.git" "main" \
-            "repos/5G-Modem-Support" \
+          sync_repo "github.com/Siriling/5G-Modem-Support.git" "main" "5G-Modem-Support" \
             "fibocom-dial:fibocom-dial,\
             fibocom_MHI:fibocom_MHI,\
             fibocom_QMI_WWAN:fibocom_QMI_WWAN,\
@@ -155,6 +195,7 @@ jobs:
             luci-app-usbmodem:luci-app-usbmodem,\
             meig-cm:meig-cm,\
             meig_QMI_WWAN:meig_QMI_WWAN,\
+            ndisc:ndisc,\
             quectel_Gobinet:quectel_Gobinet,\
             quectel_MHI:quectel_MHI,\
             quectel_QMI_WWAN:quectel_QMI_WWAN,\
@@ -162,45 +203,44 @@ jobs:
             quectel_cm_5G:quectel_cm_5G,\
             sendat:sendat,\
             sms-tool:sms-tool"
+
+          # 同步openwrt/packages
+          sync_repo "github.com/openwrt/packages.git" "master" "openwrt-packages" \
+            "net/keepalived:keepalived"
+
+          # 同步openwrt/luci
+          sync_repo "github.com/openwrt/luci.git" "master" "openwrt-luci" \
+            ""
+
+          # 同步lede/packages
+          sync_repo "github.com/coolsnowwolf/packages.git" "master" "lede-packages" \
+            "net/uugamebooster:uugamebooster,\
+            utils/containerd:containerd,\
+            utils/runc:runc,\
+            utils/tini:tini"
+
+          # 同步lede/luci
+          sync_repo "github.com/coolsnowwolf/luci.git" "master" "lede-luci" \
+            "applications/luci-app-uugamebooster:luci-app-uugamebooster"
           
           # 同步immortalwrt/packages
-          sync_repo "github.com/immortalwrt/packages.git" "master" \
-            "repos/immortalwrt-packages" \
+          sync_repo "github.com/immortalwrt/packages.git" "master" "immortalwrt-packages" \
             "lang/lua-neturl:lua-neturl"
-          
-          # 同步kiddin9/kwrt-packages
-          sync_repo "github.com/kiddin9/kwrt-packages.git" "main" \
-            "repos/kwrt-packages" \
-            "luci-app-easymesh:luci-app-easymesh,\
-            luci-app-leigod-acc:luci-app-leigod-acc,\
-            leigod-acc:leigod-acc,\
-            luci-app-uugamebooster:luci-app-uugamebooster,\
-            uugamebooster:uugamebooster,\
-            shadowsocks-libev:shadowsocks-libev,\
-            fullconenat-nft:fullconenat-nft,\
-            luci-app-dockerman:luci-app-dockerman,\
-            dockerd:dockerd,\
-            luci-app-pptp-server:luci-app-pptp-server,\
-            luci-app-pppoe-relay:luci-app-pppoe-relay,\
-            luci-app-pppoe-server:luci-app-pppoe-server,\
-            luci-app-openvpn-server:luci-app-openvpn-server,\
-            luci-app-openvpn-client:luci-app-openvpn-client,\
-            luci-app-ipsec-server:luci-app-ipsec-server,\
-            luci-app-ipsec-vpnd:luci-app-ipsec-vpnd,\
-            luci-app-zerotier:luci-app-zerotier,\
-            luci-app-einat:luci-app-einat,\
-            openwrt-einat-ebpf:openwrt-einat-ebpf,\
-            dns2socks-rust:dns2socks-rust"
+
+          # 同步immortalwrt/luci
+          sync_repo "github.com/immortalwrt/luci.git" "master" "immortalwrt-luci" \
+            "applications/luci-app-keepalived:luci-app-keepalived,\
+            applications/luci-app-dockerman:luci-app-dockerman"
           
           # 同步kenzok8/small-package
-          sync_repo "github.com/kenzok8/small-package.git" "main" \
-            "repos/small-package" \
+          sync_repo "github.com/kenzok8/small-package.git" "main" "small-package" \
             "luci-app-adguardhome:luci-app-adguardhome,\
-            adguardhome:adguardhome"
+            adguardhome:adguardhome,\
+            fullconenat-nft:fullconenat-nft,\
+            dockerd:dockerd"
 
           # 同步kenzok8/small
-          sync_repo "github.com/kenzok8/small.git" "master" \
-            "repos/small" \
+          sync_repo "github.com/kenzok8/small.git" "master" "small" \
             "brook:brook,\
             chinadns-ng:chinadns-ng,\
             dns2socks:dns2socks,\
@@ -243,6 +283,27 @@ jobs:
             v2raya:v2raya,\
             xray-core:xray-core,\
             xray-plugin:xray-plugin"
+
+          # 同步fw876/helloworld
+          sync_repo "github.com/fw876/helloworld.git" "master" "helloworld" \
+            "dns2socks-rust:dns2socks-rust"
+
+          # 同步kiddin9/kwrt-packages
+          sync_repo "github.com/kiddin9/kwrt-packages.git" "main" "kwrt-packages" \
+            "luci-app-easymesh:luci-app-easymesh,\
+            luci-app-leigod-acc:luci-app-leigod-acc,\
+            leigod-acc:leigod-acc,\
+            shadowsocks-libev:shadowsocks-libev,\
+            luci-app-pptp-server:luci-app-pptp-server,\
+            luci-app-pppoe-relay:luci-app-pppoe-relay,\
+            luci-app-pppoe-server:luci-app-pppoe-server,\
+            luci-app-openvpn-server:luci-app-openvpn-server,\
+            luci-app-openvpn-client:luci-app-openvpn-client,\
+            luci-app-ipsec-server:luci-app-ipsec-server,\
+            luci-app-ipsec-vpnd:luci-app-ipsec-vpnd,\
+            luci-app-zerotier:luci-app-zerotier,\
+            luci-app-einat:luci-app-einat,\
+            openwrt-einat-ebpf:openwrt-einat-ebpf"
           
           # 最终验证
           echo "========================================"
@@ -250,16 +311,247 @@ jobs:
           echo "最终目录结构:"
           find . -maxdepth 3 -type d | sort
           echo "========================================"
+
+      # Step 2: 应用全局Makefile修复 - Luci引用
+      - name: Apply Global Luci Makefile Fixes
+        run: |
+          # 全局替换luci.mk引用
+          echo "开始全局修复Makefile中的luci.mk引用路径..."
+          modified_count=0
+          skipped_count=0
+          
+          # 临时禁用错误退出
+          set +e
+          
+          # 查找所有文件夹下的Makefile文件
+          while IFS= read -r -d '' file; do
+            # 确保文件存在
+            if [ ! -f "$file" ]; then
+              echo "警告: 文件 '$file' 在查找后不存在，跳过"
+              continue
+            fi
+            
+            # 检查文件是否包含luci目标字符串
+            if grep -q 'include \.\./\.\./luci\.mk' "$file"; then
+              echo "修复 $file 中的luci.mk引用"
+              
+              # 执行替换
+              sed -i 's|include \.\./\.\./luci\.mk|include $(TOPDIR)/feeds/luci/luci.mk|g' "$file"
+              
+              # 检查修改是否成功
+              if grep -q 'include $(TOPDIR)/feeds/luci/luci.mk' "$file"; then
+                echo "  → 修改成功!"
+                ((modified_count++))
+              else
+                echo "  → 警告: 修改后未找到新字符串"
+              fi
+            else
+              echo "跳过 $file - 不包含luci目标字符串"
+              ((skipped_count++))
+            fi
+          done < <(find . -type f -name "Makefile" -print0)
+          
+          # 重新启用错误退出
+          set -e
+          
+          echo "----------------------------------------"
+          echo "共检查了 $((modified_count + skipped_count)) 个Makefile文件"
+          echo "修改了 $modified_count 个文件"
+          echo "跳过了 $skipped_count 个文件"
+          echo "========================================"
       
-      # Step 2: 配置Git凭据
+      # Step 3: 应用全局Makefile修复 - Golang引用
+      - name: Apply Global Golang Makefile Fixes
+        run: |
+          # 全局替换golang-package.mk引用
+          echo "开始全局修复Makefile中的golang-package.mk引用路径..."
+          modified_count=0
+          skipped_count=0
+          
+          # 临时禁用错误退出
+          set +e
+          
+          # 查找所有文件夹下的Makefile文件
+          while IFS= read -r -d '' file; do
+            # 确保文件存在
+            if [ ! -f "$file" ]; then
+              echo "警告: 文件 '$file' 在查找后不存在，跳过"
+              continue
+            fi
+            
+            # 检查文件是否包含golang目标字符串
+            if grep -q 'include \.\./\.\./lang/golang/golang-package\.mk' "$file"; then
+              echo "修复 $file 中的golang-package.mk引用"
+              
+              # 执行替换
+              sed -i 's|include \.\./\.\./lang/golang/golang-package\.mk|include $(TOPDIR)/feeds/packages/lang/golang/golang-package.mk|g' "$file"
+              
+              # 检查修改是否成功
+              if grep -q 'include $(TOPDIR)/feeds/packages/lang/golang/golang-package.mk' "$file"; then
+                echo "  → 修改成功!"
+                ((modified_count++))
+              else
+                echo "  → 警告: 修改后未找到新字符串"
+              fi
+            else
+              echo "跳过 $file - 不包含golang目标字符串"
+              ((skipped_count++))
+            fi
+          done < <(find . -type f -name "Makefile" -print0)
+          
+          # 重新启用错误退出
+          set -e
+          
+          echo "----------------------------------------"
+          echo "共检查了 $((modified_count + skipped_count)) 个Makefile文件"
+          echo "修改了 $modified_count 个文件"
+          echo "跳过了 $skipped_count 个文件"
+          echo "========================================"
+      
+      # Step 4: 修复luci-app-keepalived的po文件中的错别字
+      - name: Fix Specific PO File
+        run: |
+          po_file="luci-app-keepalived/po/zh_Hans/keepalived.po"
+          if [ -f "$po_file" ]; then
+            echo "修复 $po_file 中的错别字"
+            # 使用精确匹配替换错误文本
+            sed -i 's/msgstr "这一概览显示本设备上 VRRP 实例德当前状态。"/msgstr "这一概览显示本设备上 VRRP 实例的当前状态。"/' "$po_file"
+            
+            # 检查修改是否成功
+            if grep -q 'msgstr "这一概览显示本设备上 VRRP 实例的当前状态。"' "$po_file"; then
+              echo "PO文件修改成功!"
+            else
+              echo "警告: PO文件修改失败，可能需要手动检查"
+              echo "当前文件内容:"
+              grep 'msgstr "这一概览显示本设备上 VRRP' "$po_file" || true
+            fi
+          else
+            echo "警告: $po_file 不存在，跳过修改"
+          fi
+
+      # Step 5: 自定义 Docker 依赖
+      - name: Customizing docker dependencies
+        run: |
+          # 初始化报告变量
+          REPORT=""
+          MAKEFILE="dockerd/Makefile"
+
+          # 步骤 1: 替换 ca-bundle 为 ca-certificates
+          echo "步骤 1: 替换 ca-bundle 为 ca-certificates"
+          if grep -q '\+ca-bundle' "$MAKEFILE"; then
+            sed -i 's/\+ca-bundle/\+ca-certificates/' "$MAKEFILE" || true
+            if grep -q '\+ca-certificates' "$MAKEFILE"; then
+              REPORT+="已将 ca-bundle 替换为 ca-certificates\n"
+            else
+              REPORT+="替换 ca-bundle 失败：未找到 +ca-certificates\n"
+              echo "当前 DEPENDS 内容:"
+              grep -A 10 "DEPENDS:=" "$MAKEFILE" || true
+            fi
+          else
+            REPORT+="跳过：未找到 +ca-bundle 依赖项\n"
+          fi
+
+          # 步骤 2: 添加额外依赖项（在 @!(mips||mips64||mipsel) 前插入）
+          echo "步骤 2: 添加额外依赖项"
+          if grep -q '@!(mips||mips64||mipsel)' "$MAKEFILE"; then
+            tmpfile=$(mktemp)
+            awk 'BEGIN { inserted=0 }
+              /@!\(mips\|\|mips64\|\|mipsel\)/ && !inserted {
+                # 在锚点前插入这些依赖行（每行末尾保留反斜杠）
+                print "    +fuse-overlayfs +cgroupfs-mount \\"
+                print "    +kmod-vxlan +kmod-macvlan +kmod-dummy +kmod-crypto-gcm +kmod-crypto-seqiv +kmod-crypto-ghash \\"
+                print "    +kmod-ipsec +kmod-nf-nathelper +kmod-nf-nathelper-extra +btrfs-progs \\"
+                inserted=1
+              }
+              { print }
+            ' "$MAKEFILE" > "$tmpfile" && mv "$tmpfile" "$MAKEFILE"
+
+            if grep -q '+fuse-overlayfs' "$MAKEFILE" && grep -q '+btrfs-progs' "$MAKEFILE"; then
+              REPORT+="已添加额外依赖项 (fuse-overlayfs, btrfs-progs 等)\n"
+            else
+              REPORT+="添加额外依赖项失败：部分依赖项添加失败\n"
+              echo "当前 DEPENDS 内容:"
+              grep -A 15 "DEPENDS:=" "$MAKEFILE" || true
+            fi
+          else
+            REPORT+="跳过：未找到依赖项锚点 @!(mips||mips64||mipsel)\n"
+          fi
+
+          # 步骤 3: 修改依赖检查路径
+          echo "步骤 3: 修改依赖检查路径"
+          PATH_CHANGED=0
+          for DEP in containerd runc tini; do
+            OLD_PATH="../$DEP"
+            NEW_PATH="../../packages/utils/$DEP"
+            if grep -q "$OLD_PATH" "$MAKEFILE"; then
+              sed -i "s#${OLD_PATH}#${NEW_PATH}#g" "$MAKEFILE" || true
+              PATH_CHANGED=$((PATH_CHANGED+1))
+            else
+              REPORT+="跳过：未找到 $OLD_PATH 路径\n"
+            fi
+          done
+
+          if [ $PATH_CHANGED -gt 0 ]; then
+            if grep -q "EnsureVendoredVersion.*../../packages/utils" "$MAKEFILE"; then
+              REPORT+="已修改 ${PATH_CHANGED} 个依赖路径\n"
+            else
+              REPORT+="路径修改可能未生效\n"
+              grep "EnsureVendoredVersion" "$MAKEFILE" || true
+            fi
+          else
+            REPORT+="跳过：未找到需要修改的路径\n"
+          fi
+
+          # 步骤 4: 添加 UCI 默认配置（在安装段中插入）
+          echo "步骤 4: 添加 UCI 默认配置"
+          INSTALL_ANCHOR='$(INSTALL_BIN) $(PKG_BUILD_DIR)/bundles/binary-daemon/docker-proxy $(1)/usr/bin/'
+          if [ -f "./files/dockerd.uci-defaults" ]; then
+            if grep -q "$INSTALL_ANCHOR" "$MAKEFILE"; then
+              tmpfile=$(mktemp)
+              awk -v anchor="$INSTALL_ANCHOR" 'BEGIN { added=0 }
+                {
+                  print
+                  if (index($0, anchor) && !added) {
+                    print "\t$(INSTALL_DIR) $(1)/etc/uci-defaults"
+                    print "\t$(INSTALL_DATA) ./files/dockerd.uci-defaults $(1)/etc/uci-defaults/dockerd"
+                    added=1
+                  }
+                }
+              ' "$MAKEFILE" > "$tmpfile" && mv "$tmpfile" "$MAKEFILE"
+
+              if grep -q 'etc/uci-defaults' "$MAKEFILE"; then
+                REPORT+="已添加 UCI 默认配置\n"
+              else
+                REPORT+="添加 UCI 默认配置失败\n"
+                sed -n '/define Package\/dockerd\/install/,/endef/p' "$MAKEFILE" || true
+              fi
+            else
+              REPORT+="跳过：未找到安装锚点\n"
+            fi
+          else
+            echo "警告: ./files/dockerd.uci-defaults 文件不存在，跳过步骤4的 UCI 配置添加"
+            REPORT+="跳过：dockerd.uci-defaults 文件不存在\n"
+          fi
+
+          # 最终报告
+          echo -e "\n===== 合并操作报告 ====="
+          echo -e "$REPORT"
+
+          # 检查 UCI 配置文件是否存在
+          if [ ! -f "./files/dockerd.uci-defaults" ]; then
+            echo "警告: ./files/dockerd.uci-defaults 文件不存在，UCI 配置可能无法正常工作"
+          fi
+
+      
+      # Step 6: 配置Git凭据
       - name: Configure Git Credentials
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git remote set-url origin \
-            "https://${{ secrets.GITHUB_TOKEN }}@github.com/${{ env.TARGET_REPO }}.git"
+            "https://${{ secrets.PERSONAL_ACCESS_TOKEN }}@github.com/${{ env.TARGET_REPO }}.git"
       
-      # Step 3: 提交和推送更改
+      # Step 7: 提交和推送更改
       - name: Commit and Push Changes
         run: |
           set -e
@@ -306,12 +598,11 @@ jobs:
             git push origin ${{ env.TARGET_BRANCH }}
             echo "更改已成功推送!"
           fi
-
-      # Step 4: 清理7天前的工作流运行记录
+      # Step 8: 清理7天前的工作流运行记录
       - name: Cleanup old workflow runs
         uses: Mattraks/delete-workflow-runs@main
         with:
           retain_days: 7
           keep_minimum_runs: 5
           repository: ${{ github.repository }}
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
