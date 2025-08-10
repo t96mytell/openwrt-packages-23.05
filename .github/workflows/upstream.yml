@@ -237,7 +237,7 @@ jobs:
             "luci-app-adguardhome:luci-app-adguardhome,\
             adguardhome:adguardhome,\
             fullconenat-nft:fullconenat-nft,\
-            dockerd:docker,\
+            docker:docker,\
             dockerd:dockerd"
 
           # 同步kenzok8/small
