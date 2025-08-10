@@ -214,10 +214,7 @@ jobs:
 
           # 同步lede/packages
           sync_repo "github.com/coolsnowwolf/packages.git" "master" "lede-packages" \
-            "net/uugamebooster:uugamebooster,\
-            utils/containerd:containerd,\
-            utils/runc:runc,\
-            utils/tini:tini"
+            "net/uugamebooster:uugamebooster"
 
           # 同步lede/luci
           sync_repo "github.com/coolsnowwolf/luci.git" "master" "lede-luci" \
@@ -236,8 +233,7 @@ jobs:
           sync_repo "github.com/kenzok8/small-package.git" "main" "small-package" \
             "luci-app-adguardhome:luci-app-adguardhome,\
             adguardhome:adguardhome,\
-            fullconenat-nft:fullconenat-nft,\
-            dockerd:dockerd"
+            fullconenat-nft:fullconenat-nft"
 
           # 同步kenzok8/small
           sync_repo "github.com/kenzok8/small.git" "master" "small" \
@@ -303,7 +299,8 @@ jobs:
             luci-app-ipsec-vpnd:luci-app-ipsec-vpnd,\
             luci-app-zerotier:luci-app-zerotier,\
             luci-app-einat:luci-app-einat,\
-            openwrt-einat-ebpf:openwrt-einat-ebpf"
+            openwrt-einat-ebpf:openwrt-einat-ebpf,\
+            dockerd:dockerd"
           
           # 最终验证
           echo "========================================"
