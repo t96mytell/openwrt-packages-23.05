@@ -214,7 +214,10 @@ jobs:
 
           # 同步lede/packages
           sync_repo "github.com/coolsnowwolf/packages.git" "master" "lede-packages" \
-            "net/uugamebooster:uugamebooster"
+            "net/uugamebooster:uugamebooster,\
+            utils/containerd:containerd,\
+            utils/runc:runc,\
+            utils/tini:tini"
 
           # 同步lede/luci
           sync_repo "github.com/coolsnowwolf/luci.git" "master" "lede-luci" \
@@ -233,7 +236,9 @@ jobs:
           sync_repo "github.com/kenzok8/small-package.git" "main" "small-package" \
             "luci-app-adguardhome:luci-app-adguardhome,\
             adguardhome:adguardhome,\
-            fullconenat-nft:fullconenat-nft"
+            fullconenat-nft:fullconenat-nft,\
+            dockerd:docker,\
+            dockerd:dockerd"
 
           # 同步kenzok8/small
           sync_repo "github.com/kenzok8/small.git" "master" "small" \
@@ -299,8 +304,7 @@ jobs:
             luci-app-ipsec-vpnd:luci-app-ipsec-vpnd,\
             luci-app-zerotier:luci-app-zerotier,\
             luci-app-einat:luci-app-einat,\
-            openwrt-einat-ebpf:openwrt-einat-ebpf,\
-            dockerd:dockerd"
+            openwrt-einat-ebpf:openwrt-einat-ebpf"
           
           # 最终验证
           echo "========================================"
@@ -426,7 +430,200 @@ jobs:
             echo "警告: $po_file 不存在，跳过修改"
           fi
 
-      # Step 5: 配置Git凭据
+      # Step 5: 自定义 Docker 依赖
+      - name: Customizing dockerd package and dependencies
+        run: |
+          # 初始化报告变量
+          REPORT=""
+          MAKEFILE="dockerd/Makefile"
+
+          # 定义变量
+          DOCKER_PKG_VERSION="28.3.3"
+          DOCKER_PKG_RELEASE="1"
+          DOCKER_PKG_HASH="3727c8963ab4bcff12291e99e4d4a6b9a29ace5236fd245717bbff648f15f8cd"
+          DOCKER_PKG_GIT_SHORT_COMMIT="bea959c"
+
+          # 步骤 : 替换 PKG_VERSION 和 PKG_RELEASE
+          echo "步骤 : 替换 PKG_VERSION 和 PKG_RELEASE"
+          if grep -q "^PKG_VERSION:=" "$MAKEFILE"; then
+            sed -i "s/^PKG_VERSION:=.*/PKG_VERSION:=${DOCKER_PKG_VERSION}/" "$MAKEFILE"
+            sed -i "s/^PKG_RELEASE:=.*/PKG_RELEASE:=${DOCKER_PKG_RELEASE}/" "$MAKEFILE"
+            REPORT+="已更新 PKG_VERSION 和 PKG_RELEASE\n"
+          else
+            REPORT+="跳过：未找到 PKG_VERSION 变量\n"
+          fi
+
+          # 步骤 : 替换 PKG_HASH
+          echo "步骤 : 替换 PKG_HASH"
+          if grep -q "^PKG_HASH:=" "$MAKEFILE"; then
+            sed -i "s/^PKG_HASH:=.*/PKG_HASH:=${DOCKER_PKG_HASH}/" "$MAKEFILE"
+            REPORT+="已更新 PKG_HASH\n"
+          else
+            REPORT+="跳过：未找到 PKG_HASH 变量\n"
+          fi
+
+          # 步骤 : 替换 PKG_GIT_SHORT_COMMIT
+          echo "步骤 : 替换 PKG_GIT_SHORT_COMMIT"
+          if grep -q "^PKG_GIT_SHORT_COMMIT:=" "$MAKEFILE"; then
+            sed -i "s/^PKG_GIT_SHORT_COMMIT:=.*/PKG_GIT_SHORT_COMMIT:=${DOCKER_PKG_GIT_SHORT_COMMIT}/" "$MAKEFILE"
+            REPORT+="已更新 PKG_GIT_SHORT_COMMIT\n"
+          else
+            REPORT+="跳过：未找到 PKG_GIT_SHORT_COMMIT 变量\n"
+          fi
+
+          # 步骤 : 替换 ca-bundle 为 ca-certificates
+          echo "步骤 : 替换 ca-bundle 为 ca-certificates"
+          if grep -q '\+ca-bundle' "$MAKEFILE"; then
+            sed -i 's/\+ca-bundle/\+ca-certificates/' "$MAKEFILE" || true
+            if grep -q '\+ca-certificates' "$MAKEFILE"; then
+              REPORT+="已将 ca-bundle 替换为 ca-certificates\n"
+            else
+              REPORT+="替换 ca-bundle 失败：未找到 +ca-certificates\n"
+              echo "当前 DEPENDS 内容:"
+              grep -A 10 "DEPENDS:=" "$MAKEFILE" || true
+            fi
+          else
+            REPORT+="跳过：未找到 +ca-bundle 依赖项\n"
+          fi
+
+          # 步骤 : 添加额外依赖项（在 @!(mips||mips64||mipsel) 前插入）
+          echo "步骤 : 添加额外依赖项"
+          if grep -q '@!(mips||mips64||mipsel)' "$MAKEFILE"; then
+            tmpfile=$(mktemp)
+            awk 'BEGIN { inserted=0 }
+              /@!\(mips\|\|mips64\|\|mipsel\)/ && !inserted {
+                # 在锚点前插入这些依赖行（每行末尾保留反斜杠）
+                print "    +fuse-overlayfs +cgroupfs-mount \\"
+                print "    +kmod-vxlan +kmod-macvlan +kmod-dummy +kmod-crypto-gcm +kmod-crypto-seqiv +kmod-crypto-ghash \\"
+                print "    +kmod-ipsec +kmod-nf-nathelper +kmod-nf-nathelper-extra +btrfs-progs \\"
+                inserted=1
+              }
+              { print }
+            ' "$MAKEFILE" > "$tmpfile" && mv "$tmpfile" "$MAKEFILE"
+
+            if grep -q '+fuse-overlayfs' "$MAKEFILE" && grep -q '+btrfs-progs' "$MAKEFILE"; then
+              REPORT+="已添加额外依赖项 (fuse-overlayfs, btrfs-progs 等)\n"
+            else
+              REPORT+="添加额外依赖项失败：部分依赖项添加失败\n"
+              echo "当前 DEPENDS 内容:"
+              grep -A 15 "DEPENDS:=" "$MAKEFILE" || true
+            fi
+          else
+            REPORT+="跳过：未找到依赖项锚点 @!(mips||mips64||mipsel)\n"
+          fi
+
+          # 步骤 : 修改依赖检查路径
+          echo "步骤 : 修改依赖检查路径"
+          PATH_CHANGED=0
+          for DEP in containerd runc tini; do
+            OLD_PATH="../$DEP"
+            NEW_PATH="../../packages/utils/$DEP"
+            if grep -q "$OLD_PATH" "$MAKEFILE"; then
+              sed -i "s#${OLD_PATH}#${NEW_PATH}#g" "$MAKEFILE" || true
+              PATH_CHANGED=$((PATH_CHANGED+1))
+            else
+              REPORT+="跳过：未找到 $OLD_PATH 路径\n"
+            fi
+          done
+
+          if [ $PATH_CHANGED -gt 0 ]; then
+            if grep -q "EnsureVendoredVersion.*../../packages/utils" "$MAKEFILE"; then
+              REPORT+="已修改 ${PATH_CHANGED} 个依赖路径\n"
+            else
+              REPORT+="路径修改可能未生效\n"
+              grep "EnsureVendoredVersion" "$MAKEFILE" || true
+            fi
+          else
+            REPORT+="跳过：未找到需要修改的路径\n"
+          fi
+
+          # 步骤 : 添加 UCI 默认配置（在安装段中插入）
+          echo "步骤 : 添加 UCI 默认配置"
+          INSTALL_ANCHOR='$(INSTALL_BIN) $(PKG_BUILD_DIR)/bundles/binary-daemon/docker-proxy $(1)/usr/bin/'
+          if [ -f "./files/dockerd.uci-defaults" ]; then
+            if grep -q "$INSTALL_ANCHOR" "$MAKEFILE"; then
+              tmpfile=$(mktemp)
+              awk -v anchor="$INSTALL_ANCHOR" 'BEGIN { added=0 }
+                {
+                  print
+                  if (index($0, anchor) && !added) {
+                    print "\t$(INSTALL_DIR) $(1)/etc/uci-defaults"
+                    print "\t$(INSTALL_DATA) ./files/dockerd.uci-defaults $(1)/etc/uci-defaults/dockerd"
+                    added=1
+                  }
+                }
+              ' "$MAKEFILE" > "$tmpfile" && mv "$tmpfile" "$MAKEFILE"
+
+              if grep -q 'etc/uci-defaults' "$MAKEFILE"; then
+                REPORT+="已添加 UCI 默认配置\n"
+              else
+                REPORT+="添加 UCI 默认配置失败\n"
+                sed -n '/define Package\/dockerd\/install/,/endef/p' "$MAKEFILE" || true
+              fi
+            else
+              REPORT+="跳过：未找到安装锚点\n"
+            fi
+          else
+            echo "警告: ./files/dockerd.uci-defaults 文件不存在，跳过步骤4的 UCI 配置添加"
+            REPORT+="跳过：dockerd.uci-defaults 文件不存在\n"
+          fi
+
+          # 最终报告
+          echo -e "\n===== 合并操作报告 ====="
+          echo -e "$REPORT"
+
+          # 检查 UCI 配置文件是否存在
+          if [ ! -f "./files/dockerd.uci-defaults" ]; then
+            echo "警告: ./files/dockerd.uci-defaults 文件不存在，UCI 配置可能无法正常工作"
+          fi
+
+      # Step 6: 自定义 Docker CLI 包
+      - name: Customizing docker CLI package
+        run: |
+          # 初始化报告变量
+          REPORT=""
+          MAKEFILE="docker/Makefile"
+
+          # 定义变量
+          DOCKER_CLI_PKG_VERSION="28.3.3"
+          DOCKER_CLI_PKG_RELEASE="2"
+          DOCKER_CLI_PKG_HASH="172dca437abb36485275a8d43550db90b6878bcc676fc0b73a67a57a15026cff"
+          DOCKER_CLI_PKG_GIT_SHORT_COMMIT="980b856"
+
+          # 步骤 : 替换 PKG_VERSION 和 PKG_RELEASE
+          echo "步骤 : 替换 PKG_VERSION 和 PKG_RELEASE"
+          if grep -q "^PKG_VERSION:=" "$MAKEFILE"; then
+            sed -i "s/^PKG_VERSION:=.*/PKG_VERSION:=${DOCKER_CLI_PKG_VERSION}/" "$MAKEFILE"
+            sed -i "s/^PKG_RELEASE:=.*/PKG_RELEASE:=${DOCKER_CLI_PKG_RELEASE}/" "$MAKEFILE"
+            REPORT+="已更新 PKG_VERSION 和 PKG_RELEASE\n"
+          else
+            REPORT+="跳过：未找到 PKG_VERSION 变量\n"
+          fi
+
+          # 步骤 : 替换 PKG_HASH
+          echo "步骤 : 替换 PKG_HASH"
+          if grep -q "^PKG_HASH:=" "$MAKEFILE"; then
+            sed -i "s/^PKG_HASH:=.*/PKG_HASH:=${DOCKER_CLI_PKG_HASH}/" "$MAKEFILE"
+            REPORT+="已更新 PKG_HASH\n"
+          else
+            REPORT+="跳过：未找到 PKG_HASH 变量\n"
+          fi
+
+          # 步骤 : 替换 PKG_GIT_SHORT_COMMIT
+          echo "步骤 : 替换 PKG_GIT_SHORT_COMMIT"
+          if grep -q "^PKG_GIT_SHORT_COMMIT:=" "$MAKEFILE"; then
+            sed -i "s/^PKG_GIT_SHORT_COMMIT:=.*/PKG_GIT_SHORT_COMMIT:=${DOCKER_CLI_PKG_GIT_SHORT_COMMIT}/" "$MAKEFILE"
+            REPORT+="已更新 PKG_GIT_SHORT_COMMIT\n"
+          else
+            REPORT+="跳过：未找到 PKG_GIT_SHORT_COMMIT 变量\n"
+          fi
+
+          # 最终报告
+          echo -e "\n===== 合并操作报告 ====="
+          echo -e "$REPORT"
+
+      
+      # Step 7: 配置Git凭据
       - name: Configure Git Credentials
         run: |
           git config --global user.name "github-actions[bot]"
@@ -434,7 +631,7 @@ jobs:
           git remote set-url origin \
             "https://${{ secrets.PERSONAL_ACCESS_TOKEN }}@github.com/${{ env.TARGET_REPO }}.git"
       
-      # Step 6: 提交和推送更改
+      # Step 8: 提交和推送更改
       - name: Commit and Push Changes
         run: |
           set -e
@@ -481,7 +678,7 @@ jobs:
             git push origin ${{ env.TARGET_BRANCH }}
             echo "更改已成功推送!"
           fi
-      # Step 7: 清理7天前的工作流运行记录
+      # Step 9: 清理7天前的工作流运行记录
       - name: Cleanup old workflow runs
         uses: Mattraks/delete-workflow-runs@main
         with:
