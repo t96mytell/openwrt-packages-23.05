@@ -287,14 +287,14 @@ jobs:
 
           # 同步fw876/helloworld
           sync_repo "github.com/fw876/helloworld.git" "master" "helloworld" \
-            "dns2socks-rust:dns2socks-rust"
+            "shadowsocks-libev:shadowsocks-libev,\
+            dns2socks-rust:dns2socks-rust"
 
           # 同步kiddin9/kwrt-packages
           sync_repo "github.com/kiddin9/kwrt-packages.git" "main" "kwrt-packages" \
             "luci-app-easymesh:luci-app-easymesh,\
             luci-app-leigod-acc:luci-app-leigod-acc,\
             leigod-acc:leigod-acc,\
-            shadowsocks-libev:shadowsocks-libev,\
             luci-app-pptp-server:luci-app-pptp-server,\
             luci-app-pppoe-relay:luci-app-pppoe-relay,\
             luci-app-pppoe-server:luci-app-pppoe-server,\
