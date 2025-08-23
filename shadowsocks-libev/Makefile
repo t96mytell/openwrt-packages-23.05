@@ -14,13 +14,13 @@ include $(TOPDIR)/rules.mk
 #
 PKG_NAME:=shadowsocks-libev
 PKG_VERSION:=3.3.5
-PKG_RELEASE:=7
+PKG_RELEASE:=13
 
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE_URL:=https://github.com/shadowsocks/shadowsocks-libev.git
 PKG_SOURCE_DATE:=2025-1-20
 PKG_SOURCE_VERSION:=9afa3cacf947f910be46b69fc5a7a1fdd02fd5e6
-PKG_MIRROR_HASH:=skip
+PKG_MIRROR_HASH:=b56d015394a3217750ec232570e012461a30af17de20d5598c3b026c8fcaa5b5
 
 PKG_MAINTAINER:=Yousong Zhou <yszhou4tech@gmail.com>
 
@@ -36,6 +36,27 @@ PKG_BUILD_DEPENDS:=c-ares pcre2
 
 include $(INCLUDE_DIR)/package.mk
 
+
+define Package/shadowsocks-libev-config
+  SECTION:=net
+  CATEGORY:=Network
+  SUBMENU:=Web Servers/Proxies
+  TITLE:=shadowsocks-libev config scripts
+  URL:=https://github.com/shadowsocks/shadowsocks-libev
+endef
+
+define Package/shadowsocks-libev-config/conffiles
+/etc/config/shadowsocks-libev
+endef
+
+define Package/shadowsocks-libev-config/install
+	$(INSTALL_DIR) $(1)/etc/config
+	$(INSTALL_DATA) ./files/shadowsocks-libev.config $(1)/etc/config/shadowsocks-libev
+	$(INSTALL_DIR) $(1)/etc/init.d
+	$(INSTALL_BIN) ./files/shadowsocks-libev.init $(1)/etc/init.d/shadowsocks-libev
+endef
+
+
 define Package/shadowsocks-libev/Default
   define Package/shadowsocks-libev-$(1)
     SECTION:=net
@@ -43,7 +64,7 @@ define Package/shadowsocks-libev/Default
     SUBMENU:=Web Servers/Proxies
     TITLE:=shadowsocks-libev $(1)
     URL:=https://github.com/shadowsocks/shadowsocks-libev
-    DEPENDS:=+libev +libmbedtls +libpthread +libsodium $(DEPENDS_$(1))
+    DEPENDS:=+libev +libmbedtls +libpthread +libsodium +shadowsocks-libev-config $(DEPENDS_$(1))
   endef
 
   define Package/shadowsocks-libev-$(1)/install
@@ -64,6 +85,28 @@ define shadowsocks-libev/templates
 endef
 $(eval $(call shadowsocks-libev/templates))
 
+
+define Package/shadowsocks-libev-ss-rules
+  SECTION:=net
+  CATEGORY:=Network
+  SUBMENU:=Web Servers/Proxies
+  TITLE:=shadowsocks-libev ss-rules
+  URL:=https://github.com/shadowsocks/shadowsocks-libev
+  DEPENDS:=+firewall4 \
+	   +ip \
+	   +resolveip \
+	   +ucode \
+	   +ucode-mod-fs \
+	   +shadowsocks-libev-ss-redir \
+	   +shadowsocks-libev-config \
+	   +kmod-nft-tproxy
+endef
+
+define Package/shadowsocks-libev-ss-rules/install
+	$(INSTALL_DIR) $(1)/usr/share/ss-rules
+	$(INSTALL_DATA) ./files/ss-rules/* $(1)/usr/share/ss-rules/
+endef
+
 define Build/Prepare
 	$(call Build/Prepare/Default)
 	$(FIND) $(PKG_BUILD_DIR) \
@@ -82,6 +125,8 @@ CONFIGURE_ARGS += \
 
 TARGET_LDFLAGS += -Wl,--gc-sections,--as-needed
 
+$(eval $(call BuildPackage,shadowsocks-libev-config))
+$(eval $(call BuildPackage,shadowsocks-libev-ss-rules))
 $(foreach component,$(SHADOWSOCKS_COMPONENTS), \
   $(eval $(call BuildPackage,shadowsocks-libev-$(component))) \
 )
