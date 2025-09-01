@@ -433,8 +433,8 @@ jobs:
             echo "警告: $po_file 不存在，跳过修改"
           fi
 
-      # Step 5: 自定义 Docker 依赖
-      - name: Customizing dockerd package and dependencies
+      # Step 5: 自定义 Docker 社区版守护进程依赖
+      - name: Customizing Docker CE daemon dependencies
         run: |
           # 初始化报告变量
           REPORT=""
