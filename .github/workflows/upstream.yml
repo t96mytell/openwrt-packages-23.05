@@ -273,8 +273,6 @@ jobs:
             ssocks:ssocks,\
             tcping:tcping,\
             trojan-go:trojan-go,\
-            trojan-plus:trojan-plus,\
-            trojan:trojan,\
             tuic-client:tuic-client,\
             v2dat:v2dat,\
             v2ray-core:v2ray-core,\
@@ -288,7 +286,12 @@ jobs:
           # 同步fw876/helloworld
           sync_repo "github.com/fw876/helloworld.git" "master" "helloworld" \
             "shadowsocks-libev:shadowsocks-libev,\
-            dns2socks-rust:dns2socks-rust"
+            dns2socks-rust:dns2socks-rust,\
+            trojan:trojan"
+
+          # 同步xiaorouji/openwrt-passwall-packages
+          sync_repo "github.com/xiaorouji/openwrt-passwall-packages.git" "main" "openwrt-passwall-packages" \
+            "trojan-plus:trojan-plus"
 
           # 同步kiddin9/kwrt-packages
           sync_repo "github.com/kiddin9/kwrt-packages.git" "main" "kwrt-packages" \
