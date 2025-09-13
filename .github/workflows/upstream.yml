@@ -280,7 +280,8 @@ jobs:
             v2ray-plugin:v2ray-plugin,\
             v2raya:v2raya,\
             xray-core:xray-core,\
-            xray-plugin:xray-plugin"
+            xray-plugin:xray-plugin,\
+            geoview"
 
           # 同步fw876/helloworld
           sync_repo "github.com/fw876/helloworld.git" "master" "helloworld" \
