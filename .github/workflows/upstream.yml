@@ -458,7 +458,6 @@ jobs:
           DOCKER_PKG_HASH=$(sha256sum "$TMP_DIR/source.tar.gz" | cut -d' ' -f1)
           DOCKER_PKG_GIT_SHORT_COMMIT=$(git -C "$TMP_DIR/git-src" rev-parse --short HEAD)
 
-          cd -
           rm -rf "$TMP_DIR"
 
           # 步骤 : 替换 PKG_VERSION 和 PKG_RELEASE
@@ -617,7 +616,6 @@ jobs:
           DOCKER_CLI_PKG_HASH=$(sha256sum "$TMP_DIR/source.tar.gz" | cut -d' ' -f1)
           DOCKER_CLI_PKG_GIT_SHORT_COMMIT=$(git -C "$TMP_DIR/git-src" rev-parse --short HEAD)
 
-          cd -
           rm -rf "$TMP_DIR"
 
           # 步骤 : 替换 PKG_VERSION 和 PKG_RELEASE
