@@ -53,7 +53,7 @@ jobs:
           fi
 
       - name: Make git-short-commit.sh executable
-        run: chmod +x ./git-short-commit.sh
+        run: chmod +x .github/scripts/git-short-commit.sh
       
       # Step 1: 支持无顶层目录仓库和通用嵌套目录的同步方案
       - name: Sync from upstream repositories
@@ -451,7 +451,7 @@ jobs:
           PKG_GIT_URL="github.com/moby/moby"
           PKG_GIT_REF="v$DOCKER_PKG_VERSION"
           
-          DOCKER_PKG_GIT_SHORT_COMMIT="$($(pwd)/git-short-commit.sh "$PKG_GIT_URL" "$PKG_GIT_REF")"
+          DOCKER_PKG_GIT_SHORT_COMMIT="$($(pwd)/.github/scripts/git-short-commit.sh "$PKG_GIT_URL" "$PKG_GIT_REF")"
 
           # 步骤 : 替换 PKG_VERSION 和 PKG_RELEASE
           echo "步骤 : 替换 PKG_VERSION 和 PKG_RELEASE"
@@ -602,7 +602,7 @@ jobs:
           PKG_GIT_URL="github.com/docker/cli"
           PKG_GIT_REF="v$DOCKER_CLI_PKG_VERSION"
           
-          DOCKER_CLI_PKG_GIT_SHORT_COMMIT="$($(pwd)/git-short-commit.sh "$PKG_GIT_URL" "$PKG_GIT_REF")"
+          DOCKER_CLI_PKG_GIT_SHORT_COMMIT="$($(pwd)/.github/scripts/git-short-commit.sh "$PKG_GIT_URL" "$PKG_GIT_REF")"
 
           # 步骤 : 替换 PKG_VERSION 和 PKG_RELEASE
           echo "步骤 : 替换 PKG_VERSION 和 PKG_RELEASE"
