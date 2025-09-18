@@ -240,6 +240,7 @@ jobs:
             "luci-app-adguardhome:luci-app-adguardhome,\
             adguardhome:adguardhome,\
             fullconenat-nft:fullconenat-nft,\
+            cgroupfs-mount:cgroupfs-mount,\
             docker:docker,\
             dockerd:dockerd"
 
@@ -436,7 +437,69 @@ jobs:
             echo "警告: $po_file 不存在，跳过修改"
           fi
 
-      # Step 5: 自定义 Docker 社区版守护进程依赖
+      # Step 5: 自定义 containerd 包
+      - name: Customizing containerd package
+        run: |
+          # 初始化报告变量
+          REPORT=""
+          MAKEFILE="containerd/Makefile"
+
+          # 定义变量
+          CONTAINERD_PKG_VERSION="1.7.27"
+          CONTAINERD_PKG_RELEASE="1"
+          
+          PKG_GIT_URL="github.com/containerd/containerd"
+          PKG_GIT_REF="v$CONTAINERD_PKG_VERSION"
+          PKG_SOURCE_URL="https://codeload.$PKG_GIT_URL/tar.gz/$PKG_GIT_REF"
+
+          # 下载源码 tarball
+          TMP_DIR=$(mktemp -d)
+          wget -O "$TMP_DIR/source.tar.gz" "$PKG_SOURCE_URL"
+
+          # 计算 SHA256
+          CONTAINERD_PKG_HASH=$(sha256sum "$TMP_DIR/source.tar.gz" | cut -d' ' -f1)
+
+          # 获取短 commit
+          git clone --depth 1 --branch "$PKG_GIT_REF" "https://$PKG_GIT_URL" "$TMP_DIR/git-src"
+          CONTAINERD_PKG_GIT_SHORT_COMMIT=$(git -C "$TMP_DIR/git-src" rev-parse --short HEAD)
+
+          # 清理临时目录
+          rm -rf "$TMP_DIR"
+
+          # 步骤 : 替换 PKG_VERSION 和 PKG_RELEASE
+          echo "步骤 : 替换 PKG_VERSION 和 PKG_RELEASE"
+          if grep -q "^PKG_VERSION:=" "$MAKEFILE"; then
+            sed -i "s/^PKG_VERSION:=.*/PKG_VERSION:=${CONTAINERD_PKG_VERSION}/" "$MAKEFILE"
+            sed -i "s/^PKG_RELEASE:=.*/PKG_RELEASE:=${CONTAINERD_PKG_RELEASE}/" "$MAKEFILE"
+            REPORT+="已更新 PKG_VERSION 和 PKG_RELEASE\n"
+          else
+            REPORT+="跳过：未找到 PKG_VERSION 变量\n"
+          fi
+
+          # 步骤 : 替换 PKG_HASH
+          echo "步骤 : 替换 PKG_HASH"
+          if grep -q "^PKG_HASH:=" "$MAKEFILE"; then
+            sed -i "s/^PKG_HASH:=.*/PKG_HASH:=${CONTAINERD_PKG_HASH}/" "$MAKEFILE"
+            REPORT+="已更新 PKG_HASH\n"
+          else
+            REPORT+="跳过：未找到 PKG_HASH 变量\n"
+          fi
+
+          # 步骤 : 替换 PKG_GIT_SHORT_COMMIT
+          echo "步骤 : 替换 PKG_GIT_SHORT_COMMIT"
+          if grep -q "^PKG_GIT_SHORT_COMMIT:=" "$MAKEFILE"; then
+            sed -i "s/^PKG_GIT_SHORT_COMMIT:=.*/PKG_GIT_SHORT_COMMIT:=${CONTAINERD_PKG_GIT_SHORT_COMMIT}/" "$MAKEFILE"
+            REPORT+="已更新 PKG_GIT_SHORT_COMMIT\n"
+          else
+            REPORT+="跳过：未找到 PKG_GIT_SHORT_COMMIT 变量\n"
+          fi
+
+          # 最终报告
+          echo -e "\n===== 合并操作报告 ====="
+          echo -e "$REPORT"
+
+
+      # Step 6: 自定义 Docker 社区版守护进程依赖
       - name: Customizing Docker CE daemon dependencies
         run: |
           # 初始化报告变量
@@ -450,14 +513,19 @@ jobs:
           PKG_GIT_URL="github.com/moby/moby"
           PKG_GIT_REF="v$DOCKER_PKG_VERSION"
           PKG_SOURCE_URL="https://codeload.$PKG_GIT_URL/tar.gz/$PKG_GIT_REF"
-          
+
+          # 下载源码 tarball
           TMP_DIR=$(mktemp -d)
           wget -O "$TMP_DIR/source.tar.gz" "$PKG_SOURCE_URL"
-          DOCKER_PKG_HASH=$(sha256sum "$TMP_DIR/source.tar.gz" | cut -d' ' -f1)
 
+          # 计算 SHA256
+          DOCKER_PKG_HASH=$(sha256sum "$TMP_DIR/source.tar.gz" | cut -d' ' -f1)
+          
+          # 获取短 commit
           git clone --depth 1 --branch "$PKG_GIT_REF" "https://$PKG_GIT_URL" "$TMP_DIR/git-src"
           DOCKER_PKG_GIT_SHORT_COMMIT=$(git -C "$TMP_DIR/git-src" rev-parse --short HEAD)
-
+          
+          # 清理临时目录
           rm -rf "$TMP_DIR"
 
           # 步骤 : 替换 PKG_VERSION 和 PKG_RELEASE
@@ -594,7 +662,7 @@ jobs:
             echo "警告: ./files/dockerd.uci-defaults 文件不存在，UCI 配置可能无法正常工作"
           fi
 
-      # Step 6: 自定义 Docker CLI 包
+      # Step 7: 自定义 Docker CLI 包
       - name: Customizing docker CLI package
         run: |
           # 初始化报告变量
@@ -608,14 +676,19 @@ jobs:
           PKG_GIT_URL="github.com/docker/cli"
           PKG_GIT_REF="v$DOCKER_CLI_PKG_VERSION"
           PKG_SOURCE_URL="https://codeload.$PKG_GIT_URL/tar.gz/$PKG_GIT_REF"
-
+          
+          # 下载源码 tarball
           TMP_DIR=$(mktemp -d)
           wget -O "$TMP_DIR/source.tar.gz" "$PKG_SOURCE_URL"
+          
+          # 计算 SHA256
           DOCKER_CLI_PKG_HASH=$(sha256sum "$TMP_DIR/source.tar.gz" | cut -d' ' -f1)
           
+          # 获取短 commit
           git clone --depth 1 --branch "$PKG_GIT_REF" "https://$PKG_GIT_URL" "$TMP_DIR/git-src"
           DOCKER_CLI_PKG_GIT_SHORT_COMMIT=$(git -C "$TMP_DIR/git-src" rev-parse --short HEAD)
-
+          
+          # 清理临时目录
           rm -rf "$TMP_DIR"
 
           # 步骤 : 替换 PKG_VERSION 和 PKG_RELEASE
@@ -651,7 +724,7 @@ jobs:
           echo -e "$REPORT"
 
       
-      # Step 7: 配置Git凭据
+      # Step 8: 配置Git凭据
       - name: Configure Git Credentials
         run: |
           git config --global user.name "github-actions[bot]"
@@ -659,7 +732,7 @@ jobs:
           git remote set-url origin \
             "https://${{ secrets.PERSONAL_ACCESS_TOKEN }}@github.com/${{ env.TARGET_REPO }}.git"
       
-      # Step 8: 提交和推送更改
+      # Step 9: 提交和推送更改
       - name: Commit and Push Changes
         run: |
           set -e
@@ -706,7 +779,7 @@ jobs:
             git push origin ${{ env.TARGET_BRANCH }}
             echo "更改已成功推送!"
           fi
-      # Step 9: 清理7天前的工作流运行记录
+      # Step 10: 清理7天前的工作流运行记录
       - name: Cleanup old workflow runs
         uses: Mattraks/delete-workflow-runs@main
         with:
