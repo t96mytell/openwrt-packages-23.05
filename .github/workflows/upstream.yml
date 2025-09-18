@@ -453,7 +453,7 @@ jobs:
           TMP_DIR=$(mktemp -d)
           git clone --depth 1 --branch "$PKG_GIT_REF" "https://$PKG_GIT_URL" "$TMP_DIR/git-src"
           cd "$TMP_DIR/git-src"
-          tar czf source.tar.gz .
+          tar --exclude='.git' -czf source.tar.gz .
           DOCKER_PKG_HASH=$(sha256sum source.tar.gz | cut -d' ' -f1)
           cd -
           rm -rf "$TMP_DIR"
@@ -612,7 +612,7 @@ jobs:
           TMP_DIR=$(mktemp -d)
           git clone --depth 1 --branch "$PKG_GIT_REF" "https://$PKG_GIT_URL" "$TMP_DIR/git-src"
           cd "$TMP_DIR/git-src"
-          tar czf source.tar.gz .
+          tar --exclude='.git' -czf source.tar.gz .
           DOCKER_CLI_PKG_HASH=$(sha256sum source.tar.gz | cut -d' ' -f1)
           cd -
           rm -rf "$TMP_DIR"
