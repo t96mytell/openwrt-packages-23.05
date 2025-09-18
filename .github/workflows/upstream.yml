@@ -455,8 +455,8 @@ jobs:
           DOCKER_PKG_RELEASE="1"
           DOCKER_PKG_HASH="3727c8963ab4bcff12291e99e4d4a6b9a29ace5236fd245717bbff648f15f8cd"
 
-          PKG_GIT_URL:="github.com/moby/moby"
-          PKG_GIT_REF:="v$DOCKER_PKG_VERSION"
+          PKG_GIT_URL="github.com/moby/moby"
+          PKG_GIT_REF="v$DOCKER_PKG_VERSION"
           
           DOCKER_PKG_GIT_SHORT_COMMIT="$($(pwd)/scripts/git-short-commit.sh "$PKG_GIT_URL" "$PKG_GIT_REF")"
 
@@ -606,8 +606,8 @@ jobs:
           DOCKER_CLI_PKG_RELEASE="2"
           DOCKER_CLI_PKG_HASH="172dca437abb36485275a8d43550db90b6878bcc676fc0b73a67a57a15026cff"
           
-          PKG_GIT_URL:="github.com/docker/cli"
-          PKG_GIT_REF:="v$DOCKER_CLI_PKG_VERSION"
+          PKG_GIT_URL="github.com/docker/cli"
+          PKG_GIT_REF="v$DOCKER_CLI_PKG_VERSION"
           
           DOCKER_CLI_PKG_GIT_SHORT_COMMIT="$($(pwd)/scripts/git-short-commit.sh "$PKG_GIT_URL" "$PKG_GIT_REF")"
 
