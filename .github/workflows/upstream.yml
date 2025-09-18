@@ -51,6 +51,9 @@ jobs:
             git commit -m "Initial commit"
             git push origin ${{ env.TARGET_BRANCH }}
           fi
+
+      - name: Make git-short-commit.sh executable
+        run: chmod +x ./git-short-commit.sh
       
       # Step 1: 支持无顶层目录仓库和通用嵌套目录的同步方案
       - name: Sync from upstream repositories
