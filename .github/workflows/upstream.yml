@@ -452,10 +452,8 @@ jobs:
           
           TMP_DIR=$(mktemp -d)
           git clone --depth 1 --branch "$PKG_GIT_REF" "https://$PKG_GIT_URL" "$TMP_DIR/git-src"
-          cd "$TMP_DIR"
-          git -C git-src archive --format=tar.gz -o source.tar.gz "$PKG_GIT_REF"
-          DOCKER_PKG_HASH=$(sha256sum source.tar.gz | cut -d' ' -f1)
-          cd -
+          git -C "$TMP_DIR/git-src" archive --format=tar.gz -o "$TMP_DIR/source.tar.gz" "$PKG_GIT_REF"
+          DOCKER_PKG_HASH=$(sha256sum "$TMP_DIR/source.tar.gz" | cut -d' ' -f1)
           rm -rf "$TMP_DIR"
 
           
@@ -611,10 +609,8 @@ jobs:
 
           TMP_DIR=$(mktemp -d)
           git clone --depth 1 --branch "$PKG_GIT_REF" "https://$PKG_GIT_URL" "$TMP_DIR/git-src"
-          cd "$TMP_DIR"
-          git -C git-src archive --format=tar.gz -o source.tar.gz "$PKG_GIT_REF"
-          DOCKER_CLI_PKG_HASH=$(sha256sum source.tar.gz | cut -d' ' -f1)
-          cd -
+          git -C "$TMP_DIR/git-src" archive --format=tar.gz -o "$TMP_DIR/source.tar.gz" "$PKG_GIT_REF"
+          DOCKER_CLI_PKG_HASH=$(sha256sum "$TMP_DIR/source.tar.gz" | cut -d' ' -f1)
           rm -rf "$TMP_DIR"
           
           DOCKER_CLI_PKG_GIT_SHORT_COMMIT="$(.github/scripts/git-short-commit.sh "$PKG_GIT_URL" "$PKG_GIT_REF")"
