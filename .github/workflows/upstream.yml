@@ -220,11 +220,14 @@ jobs:
             "net/uugamebooster:uugamebooster,\
             utils/containerd:containerd,\
             utils/runc:runc,\
-            utils/tini:tini"
+            utils/tini:tini,\
+            net/nft-qos:nft-qos"
 
           # 同步lede/luci
           sync_repo "github.com/coolsnowwolf/luci.git" "master" "lede-luci" \
-            "applications/luci-app-uugamebooster:luci-app-uugamebooster"
+            "applications/luci-app-uugamebooster:luci-app-uugamebooster,\
+            applications/luci-app-nft-qos:luci-app-nft-qos
+            "
           
           # 同步immortalwrt/packages
           sync_repo "github.com/immortalwrt/packages.git" "master" "immortalwrt-packages" \
