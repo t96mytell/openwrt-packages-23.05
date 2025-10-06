@@ -55,39 +55,45 @@ jobs:
       - name: Make git-short-commit.sh executable
         run: chmod +x .github/scripts/git-short-commit.sh
       
-      # Step 1: 支持无顶层目录仓库和通用嵌套目录的同步方案
+      # Step 1: 支持按分支或Commit同步上游仓库
       - name: Sync from upstream repositories
         run: |
           set -euo pipefail
           
-          # 同步函数（支持目录和无顶层目录仓库）
+          # 同步函数（支持按 branch 或 commit 同步）
           sync_repo() {
             local repo_url=$1
-            local branch=$2
+            local ref=$2 # 可以是分支名或 commit hash
             local clone_dir=$3
             local mappings=$4
             
             # 检查映射关系是否为空 - 如果为空则跳过
             if [ -z "$mappings" ]; then
               echo "========================================"
-              echo "跳过仓库: $repo_url (分支: $branch)"
+              echo "跳过仓库: $repo_url (引用: $ref)"
               echo "原因: 映射关系为空"
               echo "========================================"
               return 0
             fi
             
             echo "========================================"
-            echo "处理仓库: $repo_url (分支: $branch)"
+            echo "处理仓库: $repo_url (引用: $ref)"
             echo "临时目录: $clone_dir"
             echo "映射关系: $mappings"
             echo "----------------------------------------"
             
             # 克隆仓库
             echo "正在克隆仓库..."
-            git clone --quiet --depth 1 --branch "$branch" \
-              "https://${{ secrets.PERSONAL_ACCESS_TOKEN }}@$repo_url" \
-              "$clone_dir" || {
-              echo "错误: 克隆失败 - $repo_url"
+            git clone --quiet "https://${{ secrets.PERSONAL_ACCESS_TOKEN }}@$repo_url" "$clone_dir" || {
+              echo "错误: 克隆仓库失败 - $repo_url"
+              return 1
+            }
+
+            echo "正在切换到指定的引用 (branch/commit): $ref..."
+            (
+              cd "$clone_dir" && git checkout --quiet "$ref"
+            ) || {
+              echo "错误: 切换到引用 '$ref' 失败"
               return 1
             }
             
@@ -133,7 +139,7 @@ jobs:
                 
                 # 执行同步（根据源类型使用不同参数）
                 if [ "$src_path" == "." ]; then
-                  # 同步整个仓库根目录（排除.git目录）
+                  # 同步整个仓库根目录（排除.git等目录）
                   echo "正在同步整个仓库根目录..."
                   rsync -av --delete-after \
                     --exclude='/.git' \
@@ -225,8 +231,7 @@ jobs:
 
           # 同步lede/luci
           sync_repo "github.com/coolsnowwolf/luci.git" "master" "lede-luci" \
-            "applications/luci-app-uugamebooster:luci-app-uugamebooster
-            "
+            "applications/luci-app-uugamebooster:luci-app-uugamebooster"
           
           # 同步immortalwrt/packages
           sync_repo "github.com/immortalwrt/packages.git" "master" "immortalwrt-packages" \
@@ -237,7 +242,7 @@ jobs:
             "applications/luci-app-keepalived:luci-app-keepalived,\
             applications/luci-app-dockerman:luci-app-dockerman"
 
-          # 同步immortalwrt/luci > luci-app-nft-qos
+          # 同步immortalwrt/luci > luci-app-nft-qos (按Commit)
           sync_repo "github.com/immortalwrt/luci.git" "27823f5" "immortalwrt-luci-app-nft-qos" \
             "applications/luci-app-nft-qos:luci-app-nft-qos"
           
@@ -504,7 +509,7 @@ jobs:
           echo -e "\n===== 合并操作报告 ====="
           echo -e "$REPORT"
 
-      # Step X: 自定义 runc 包
+      # Step 6: 自定义 runc 包
       - name: Customizing runc package
         run: |
           # 初始化报告变量
@@ -566,7 +571,7 @@ jobs:
           echo -e "$REPORT"
 
 
-      # Step 6: 自定义 Docker 社区版守护进程依赖
+      # Step 7: 自定义 Docker 社区版守护进程依赖
       - name: Customizing Docker CE daemon dependencies
         run: |
           # 初始化报告变量
@@ -729,7 +734,7 @@ jobs:
             echo "警告: ./files/dockerd.uci-defaults 文件不存在，UCI 配置可能无法正常工作"
           fi
 
-      # Step 7: 自定义 Docker CLI 包
+      # Step 8: 自定义 Docker CLI 包
       - name: Customizing docker CLI package
         run: |
           # 初始化报告变量
@@ -791,7 +796,7 @@ jobs:
           echo -e "$REPORT"
 
       
-      # Step 8: 配置Git凭据
+      # Step 9: 配置Git凭据
       - name: Configure Git Credentials
         run: |
           git config --global user.name "github-actions[bot]"
@@ -799,7 +804,7 @@ jobs:
           git remote set-url origin \
             "https://${{ secrets.PERSONAL_ACCESS_TOKEN }}@github.com/${{ env.TARGET_REPO }}.git"
       
-      # Step 9: 提交和推送更改
+      # Step 10: 提交和推送更改
       - name: Commit and Push Changes
         run: |
           set -e
@@ -846,7 +851,7 @@ jobs:
             git push origin ${{ env.TARGET_BRANCH }}
             echo "更改已成功推送!"
           fi
-      # Step 10: 清理7天前的工作流运行记录
+      # Step 11: 清理7天前的工作流运行记录
       - name: Cleanup old workflow runs
         uses: Mattraks/delete-workflow-runs@main
         with:
