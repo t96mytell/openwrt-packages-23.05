@@ -225,8 +225,7 @@ jobs:
 
           # 同步lede/luci
           sync_repo "github.com/coolsnowwolf/luci.git" "master" "lede-luci" \
-            "applications/luci-app-uugamebooster:luci-app-uugamebooster,\
-            applications/luci-app-nft-qos:luci-app-nft-qos
+            "applications/luci-app-uugamebooster:luci-app-uugamebooster
             "
           
           # 同步immortalwrt/packages
