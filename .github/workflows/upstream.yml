@@ -236,6 +236,10 @@ jobs:
           sync_repo "github.com/immortalwrt/luci.git" "master" "immortalwrt-luci" \
             "applications/luci-app-keepalived:luci-app-keepalived,\
             applications/luci-app-dockerman:luci-app-dockerman"
+
+          # 同步immortalwrt/luci > luci-app-nft-qos
+          sync_repo "github.com/immortalwrt/luci.git" "27823f5" "immortalwrt-luci-app-nft-qos" \
+            "applications/luci-app-nft-qos:luci-app-nft-qos"
           
           # 同步kenzok8/small-package
           sync_repo "github.com/kenzok8/small-package.git" "main" "small-package" \
