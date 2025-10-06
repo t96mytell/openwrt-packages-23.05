@@ -55,7 +55,7 @@ jobs:
       - name: Make git-short-commit.sh executable
         run: chmod +x .github/scripts/git-short-commit.sh
       
-      # Step 1: 支持按分支或Commit同步上游仓库
+      # Step 1: 支持无顶层目录仓库和通用嵌套目录的同步方案
       - name: Sync from upstream repositories
         run: |
           set -euo pipefail
@@ -70,14 +70,14 @@ jobs:
             # 检查映射关系是否为空 - 如果为空则跳过
             if [ -z "$mappings" ]; then
               echo "========================================"
-              echo "跳过仓库: $repo_url (引用: $ref)"
+              echo "跳过仓库: $repo_url (分支或 commit: $ref)"
               echo "原因: 映射关系为空"
               echo "========================================"
               return 0
             fi
             
             echo "========================================"
-            echo "处理仓库: $repo_url (引用: $ref)"
+            echo "处理仓库: $repo_url (分支或 commit: $ref)"
             echo "临时目录: $clone_dir"
             echo "映射关系: $mappings"
             echo "----------------------------------------"
