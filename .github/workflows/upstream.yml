@@ -63,21 +63,21 @@ jobs:
           # 同步函数（支持按 branch 或 commit 同步）
           sync_repo() {
             local repo_url=$1
-            local ref=$2 # 可以是分支名或 commit hash
+            local ref=$2 # 可以是分支名或commit hash
             local clone_dir=$3
             local mappings=$4
             
             # 检查映射关系是否为空 - 如果为空则跳过
             if [ -z "$mappings" ]; then
               echo "========================================"
-              echo "跳过仓库: $repo_url (分支或 commit: $ref)"
+              echo "跳过仓库: $repo_url (分支或commit : $ref)"
               echo "原因: 映射关系为空"
               echo "========================================"
               return 0
             fi
             
             echo "========================================"
-            echo "处理仓库: $repo_url (分支或 commit: $ref)"
+            echo "处理仓库: $repo_url (分支或commit : $ref)"
             echo "临时目录: $clone_dir"
             echo "映射关系: $mappings"
             echo "----------------------------------------"
