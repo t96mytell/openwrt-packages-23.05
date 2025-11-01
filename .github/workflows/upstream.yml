@@ -221,6 +221,10 @@ jobs:
           sync_repo "github.com/openwrt/luci.git" "master" "openwrt-luci" \
             ""
 
+          # 同步lede主仓库包
+          sync_repo "github.com/coolsnowwolf/lede.git" "master" "lede" \
+            ""
+
           # 同步lede/packages
           sync_repo "github.com/coolsnowwolf/packages.git" "master" "lede-packages" \
             "net/uugamebooster:uugamebooster,\
@@ -232,7 +236,12 @@ jobs:
           # 同步lede/luci
           sync_repo "github.com/coolsnowwolf/luci.git" "master" "lede-luci" \
             "applications/luci-app-uugamebooster:luci-app-uugamebooster"
-          
+
+          # 同步immortalwr主仓库包
+          sync_repo "github.com/immortalwrt/immortalwrt.git" "master" "immortalwrt" \
+            "package/network/utils/fullconenat:fullconenat,\
+            package/network/utils/fullconenat-nft:fullconenat-nft"
+
           # 同步immortalwrt/packages
           sync_repo "github.com/immortalwrt/packages.git" "master" "immortalwrt-packages" \
             "lang/lua-neturl:lua-neturl"
@@ -250,7 +259,6 @@ jobs:
           sync_repo "github.com/kenzok8/small-package.git" "main" "small-package" \
             "luci-app-adguardhome:luci-app-adguardhome,\
             adguardhome:adguardhome,\
-            fullconenat-nft:fullconenat-nft,\
             cgroupfs-mount:cgroupfs-mount,\
             docker:docker,\
             dockerd:dockerd"
