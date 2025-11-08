@@ -8,6 +8,10 @@ Date:   Sat Oct 31 16:53:39 2020 +1000
 
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
+@@ -1,7 +1,7 @@
+-cmake_minimum_required (VERSION 2.8.12...3.10)
++cmake_minimum_required (VERSION 2.8.12)
+
 @@ -13,27 +13,37 @@ if(MINIMAL)
  	add_definitions(-DTINI_MINIMAL=1)
  endif()
