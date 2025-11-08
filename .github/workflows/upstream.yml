@@ -434,29 +434,8 @@ jobs:
           echo "修改了 $modified_count 个文件"
           echo "跳过了 $skipped_count 个文件"
           echo "========================================"
-      
-      # Step 4: 修复luci-app-keepalived的po文件中的错别字
-      - name: Fix Specific PO File
-        run: |
-          po_file="luci-app-keepalived/po/zh_Hans/keepalived.po"
-          if [ -f "$po_file" ]; then
-            echo "修复 $po_file 中的错别字"
-            # 使用精确匹配替换错误文本
-            sed -i 's/msgstr "这一概览显示本设备上 VRRP 实例德当前状态。"/msgstr "这一概览显示本设备上 VRRP 实例的当前状态。"/' "$po_file"
-            
-            # 检查修改是否成功
-            if grep -q 'msgstr "这一概览显示本设备上 VRRP 实例的当前状态。"' "$po_file"; then
-              echo "PO文件修改成功!"
-            else
-              echo "警告: PO文件修改失败，可能需要手动检查"
-              echo "当前文件内容:"
-              grep 'msgstr "这一概览显示本设备上 VRRP' "$po_file" || true
-            fi
-          else
-            echo "警告: $po_file 不存在，跳过修改"
-          fi
 
-      # Step 5: 自定义 containerd 包
+      # Step 4: 自定义 containerd 包
       - name: Customizing containerd package
         run: |
           # 初始化报告变量
@@ -517,7 +496,7 @@ jobs:
           echo -e "\n===== 合并操作报告 ====="
           echo -e "$REPORT"
 
-      # Step 6: 自定义 runc 包
+      # Step 5: 自定义 runc 包
       - name: Customizing runc package
         run: |
           # 初始化报告变量
@@ -579,7 +558,7 @@ jobs:
           echo -e "$REPORT"
 
 
-      # Step 7: 自定义 Docker 社区版守护进程依赖
+      # Step 6: 自定义 Docker 社区版守护进程依赖
       - name: Customizing Docker CE daemon dependencies
         run: |
           # 初始化报告变量
@@ -742,7 +721,7 @@ jobs:
             echo "警告: ./files/dockerd.uci-defaults 文件不存在，UCI 配置可能无法正常工作"
           fi
 
-      # Step 8: 自定义 Docker CLI 包
+      # Step 7: 自定义 Docker CLI 包
       - name: Customizing docker CLI package
         run: |
           # 初始化报告变量
@@ -804,7 +783,7 @@ jobs:
           echo -e "$REPORT"
 
       
-      # Step 9: 配置Git凭据
+      # Step 8: 配置Git凭据
       - name: Configure Git Credentials
         run: |
           git config --global user.name "github-actions[bot]"
@@ -812,7 +791,7 @@ jobs:
           git remote set-url origin \
             "https://${{ secrets.PERSONAL_ACCESS_TOKEN }}@github.com/${{ env.TARGET_REPO }}.git"
       
-      # Step 10: 提交和推送更改
+      # Step 9: 提交和推送更改
       - name: Commit and Push Changes
         run: |
           set -e
@@ -859,7 +838,7 @@ jobs:
             git push origin ${{ env.TARGET_BRANCH }}
             echo "更改已成功推送!"
           fi
-      # Step 11: 清理7天前的工作流运行记录
+      # Step 10: 清理7天前的工作流运行记录
       - name: Cleanup old workflow runs
         uses: Mattraks/delete-workflow-runs@main
         with:
