@@ -346,9 +346,10 @@ jobs:
           modified_count=0
           skipped_count=0
 
-          set +e  # 临时禁用错误退出
+          # 临时禁用错误退出
+          set +e
 
-          find . -type f -name "Makefile" -print0 | while IFS= read -r -d '' file; do
+          while IFS= read -r -d '' file; do
             [ -f "$file" ] || continue
             if grep -Eq '^[[:space:]]*include ([.][.]/)+luci\.mk' "$file"; then
               echo "修复 $file 中的 luci.mk 引用..."
@@ -362,9 +363,10 @@ jobs:
             else
               ((skipped_count++))
             fi
-          done
+          done < <(find . -type f -name "Makefile" -print0)
 
-          set -e  # 恢复错误退出
+          # 恢复错误退出
+          set -e
 
           echo "----------------------------------------"
           echo "共检查了 $((modified_count + skipped_count)) 个Makefile文件"
@@ -380,9 +382,10 @@ jobs:
           modified_count=0
           skipped_count=0
 
-          set +e  # 临时禁用错误退出
+          # 临时禁用错误退出
+          set +e
 
-          find . -type f -name "Makefile" -print0 | while IFS= read -r -d '' file; do
+          while IFS= read -r -d '' file; do
             [ -f "$file" ] || continue
             if grep -Eq '^[[:space:]]*include ([.][.]/)+lang/golang/golang-package\.mk' "$file"; then
               echo "修复 $file 中的 golang-package.mk 引用..."
@@ -396,17 +399,16 @@ jobs:
             else
               ((skipped_count++))
             fi
-          done
+          done < <(find . -type f -name "Makefile" -print0)
 
-          set -e  # 恢复错误退出
+          # 恢复错误退出
+          set -e
 
           echo "----------------------------------------"
           echo "共检查了 $((modified_count + skipped_count)) 个Makefile文件"
           echo "修改了 $modified_count 个文件"
           echo "跳过了 $skipped_count 个文件"
           echo "========================================"
-
-
 
       # Step 4: 自定义 containerd 包
       - name: Customizing containerd package
