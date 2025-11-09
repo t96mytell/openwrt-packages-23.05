@@ -351,9 +351,9 @@ jobs:
 
           while IFS= read -r -d '' file; do
             [ -f "$file" ] || continue
-            if grep -Eq '^[[:space:]]*include ([.][.]/)+luci\.mk' "$file"; then
+            if grep -q 'include \(\.\./\)\+luci\.mk' "$file"; then
               echo "修复 $file 中的 luci.mk 引用..."
-              sed -i 's|^[[:space:]]*include \([.][.]/\)\+luci\.mk|include $(INCLUDE_DIR)/luci.mk|g' "$file"
+              sed -i 's|include \(\.\./\)\+luci\.mk|include $(INCLUDE_DIR)/luci.mk|g' "$file"
               if grep -q 'include $(INCLUDE_DIR)/luci.mk' "$file"; then
                 ((modified_count++))
                 echo "  → 修改成功"
@@ -387,9 +387,9 @@ jobs:
 
           while IFS= read -r -d '' file; do
             [ -f "$file" ] || continue
-            if grep -Eq '^[[:space:]]*include ([.][.]/)+lang/golang/golang-package\.mk' "$file"; then
+            if grep -q 'include \(\.\./\)\+lang/golang/golang-package\.mk' "$file"; then
               echo "修复 $file 中的 golang-package.mk 引用..."
-              sed -i 's|^[[:space:]]*include \([.][.]/\)\+lang/golang/golang-package\.mk|include $(INCLUDE_DIR)/golang-package.mk|g' "$file"
+              sed -i 's|include \(\.\./\)\+lang/golang/golang-package\.mk|include $(INCLUDE_DIR)/golang-package.mk|g' "$file"
               if grep -q 'include $(INCLUDE_DIR)/golang-package.mk' "$file"; then
                 ((modified_count++))
                 echo "  → 修改成功"
@@ -409,6 +409,7 @@ jobs:
           echo "修改了 $modified_count 个文件"
           echo "跳过了 $skipped_count 个文件"
           echo "========================================"
+
 
       # Step 4: 自定义 containerd 包
       - name: Customizing containerd package
