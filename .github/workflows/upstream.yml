@@ -216,9 +216,11 @@ jobs:
           # 同步openwrt/packages
           sync_repo "github.com/openwrt/packages.git" "master" "openwrt-packages" \
             "net/keepalived:keepalived,\
-            utils/containerd:containerd,\
             utils/runc:runc,\
-            utils/tini:tini"
+            utils/tini:tini,\
+            docker:docker,\
+            dockerd:dockerd,\
+            utils/containerd:containerd"
 
           # 同步openwrt/luci
           sync_repo "github.com/openwrt/luci.git" "master" "openwrt-luci" \
@@ -259,9 +261,7 @@ jobs:
           sync_repo "github.com/kenzok8/small-package.git" "main" "small-package" \
             "luci-app-adguardhome:luci-app-adguardhome,\
             adguardhome:adguardhome,\
-            cgroupfs-mount:cgroupfs-mount,\
-            docker:docker,\
-            dockerd:dockerd"
+            cgroupfs-mount:cgroupfs-mount"
 
           # 同步kenzok8/small
           sync_repo "github.com/kenzok8/small.git" "master" "small" \
