@@ -215,7 +215,8 @@ jobs:
 
           # 同步openwrt/packages
           sync_repo "github.com/openwrt/packages.git" "master" "openwrt-packages" \
-            "net/keepalived:keepalived"
+            "net/keepalived:keepalived,\
+            utils/tini:tini"
 
           # 同步openwrt/luci
           sync_repo "github.com/openwrt/luci.git" "master" "openwrt-luci" \
@@ -230,7 +231,6 @@ jobs:
             "net/uugamebooster:uugamebooster,\
             utils/containerd:containerd,\
             utils/runc:runc,\
-            utils/tini:tini,\
             net/nft-qos:nft-qos"
 
           # 同步lede/luci
