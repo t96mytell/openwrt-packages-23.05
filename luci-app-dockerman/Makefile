@@ -17,6 +17,6 @@ PKG_MAINTAINER:=lisaac <lisaac.cn@gmail.com> \
 
 PKG_VERSION:=0.5.26
 
-include ../../luci.mk
+include $(INCLUDE_DIR)/luci.mk
 
 # call BuildPackage - OpenWrt buildroot signature

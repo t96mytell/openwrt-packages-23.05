@@ -22,7 +22,7 @@ PKG_BUILD_FLAGS:=no-mips16
 GO_PKG:=$(PKG_GIT_URL)
 
 include $(INCLUDE_DIR)/package.mk
-include ../../lang/golang/golang-package.mk
+include $(INCLUDE_DIR)/golang-package.mk
 
 define Package/docker
   SECTION:=utils
