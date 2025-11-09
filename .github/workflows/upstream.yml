@@ -342,7 +342,6 @@ jobs:
       # Step 2: 应用全局Makefile修复 - Luci引用
       - name: Apply Global Luci Makefile Fixes
         run: |
-          # 全局替换luci.mk引用
           echo "开始全局修复Makefile中的luci.mk引用路径..."
           modified_count=0
           skipped_count=0
@@ -352,28 +351,21 @@ jobs:
           
           # 查找所有文件夹下的Makefile文件
           while IFS= read -r -d '' file; do
-            # 确保文件存在
-            if [ ! -f "$file" ]; then
-              echo "警告: 文件 '$file' 在查找后不存在，跳过"
-              continue
-            fi
-            
-            # 检查文件是否包含luci目标字符串
-            if grep -q 'include \.\./\.\./luci\.mk' "$file"; then
+            [ -f "$file" ] || { echo "警告: 文件 '$file' 不存在，跳过"; continue; }
+
+            # 匹配未被替换且非注释行
+            if grep -Eq '^[^#]*include (\.\./)+luci\.mk' "$file"; then
               echo "修复 $file 中的luci.mk引用"
-              
-              # 执行替换
-              sed -i 's|include \.\./\.\./luci\.mk|include $(TOPDIR)/feeds/luci/luci.mk|g' "$file"
-              
-              # 检查修改是否成功
-              if grep -q 'include $(TOPDIR)/feeds/luci/luci.mk' "$file"; then
+              sed -i '/^[^#]/ s|include (\.\./)\+luci\.mk|include $(INCLUDE_DIR)/luci.mk|g' "$file"
+
+              if grep -q 'include $(INCLUDE_DIR)/luci.mk' "$file"; then
                 echo "  → 修改成功!"
                 ((modified_count++))
               else
                 echo "  → 警告: 修改后未找到新字符串"
               fi
             else
-              echo "跳过 $file - 不包含luci目标字符串"
+              echo "跳过 $file - 不包含luci目标字符串或已替换"
               ((skipped_count++))
             fi
           done < <(find . -type f -name "Makefile" -print0)
@@ -386,11 +378,10 @@ jobs:
           echo "修改了 $modified_count 个文件"
           echo "跳过了 $skipped_count 个文件"
           echo "========================================"
-      
+
       # Step 3: 应用全局Makefile修复 - Golang引用
       - name: Apply Global Golang Makefile Fixes
         run: |
-          # 全局替换golang-package.mk引用
           echo "开始全局修复Makefile中的golang-package.mk引用路径..."
           modified_count=0
           skipped_count=0
@@ -400,28 +391,20 @@ jobs:
           
           # 查找所有文件夹下的Makefile文件
           while IFS= read -r -d '' file; do
-            # 确保文件存在
-            if [ ! -f "$file" ]; then
-              echo "警告: 文件 '$file' 在查找后不存在，跳过"
-              continue
-            fi
-            
-            # 检查文件是否包含golang目标字符串
-            if grep -q 'include \.\./\.\./lang/golang/golang-package\.mk' "$file"; then
+            [ -f "$file" ] || { echo "警告: 文件 '$file' 不存在，跳过"; continue; }
+
+            if grep -Eq '^[^#]*include (\.\./)+lang/golang/golang-package\.mk' "$file"; then
               echo "修复 $file 中的golang-package.mk引用"
-              
-              # 执行替换
-              sed -i 's|include \.\./\.\./lang/golang/golang-package\.mk|include $(TOPDIR)/feeds/packages/lang/golang/golang-package.mk|g' "$file"
-              
-              # 检查修改是否成功
-              if grep -q 'include $(TOPDIR)/feeds/packages/lang/golang/golang-package.mk' "$file"; then
+              sed -i '/^[^#]/ s|include (\.\./)\+lang/golang/golang-package\.mk|include $(INCLUDE_DIR)/golang-package.mk|g' "$file"
+
+              if grep -q 'include $(INCLUDE_DIR)/golang-package.mk' "$file"; then
                 echo "  → 修改成功!"
                 ((modified_count++))
               else
                 echo "  → 警告: 修改后未找到新字符串"
               fi
             else
-              echo "跳过 $file - 不包含golang目标字符串"
+              echo "跳过 $file - 不包含golang目标字符串或已替换"
               ((skipped_count++))
             fi
           done < <(find . -type f -name "Makefile" -print0)
@@ -434,6 +417,7 @@ jobs:
           echo "修改了 $modified_count 个文件"
           echo "跳过了 $skipped_count 个文件"
           echo "========================================"
+
 
       # Step 4: 自定义 containerd 包
       - name: Customizing containerd package
