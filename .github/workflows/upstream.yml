@@ -218,8 +218,8 @@ jobs:
             "net/keepalived:keepalived,\
             utils/runc:runc,\
             utils/tini:tini,\
-            docker:docker,\
-            dockerd:dockerd,\
+            utils/docker:docker,\
+            utils/dockerd:dockerd,\
             utils/containerd:containerd"
 
           # 同步openwrt/luci
