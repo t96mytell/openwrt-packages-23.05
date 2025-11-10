@@ -353,8 +353,8 @@ jobs:
             [ -f "$file" ] || continue
             if grep -q 'include \(\.\./\)\+luci\.mk' "$file"; then
               echo "修复 $file 中的 luci.mk 引用..."
-              sed -i 's|include \(\.\./\)\+luci\.mk|include $(INCLUDE_DIR)/luci.mk|g' "$file"
-              if grep -q 'include $(INCLUDE_DIR)/luci.mk' "$file"; then
+              sed -i 's|include \(\.\./\)\+luci\.mk|include $(TOPDIR)/feeds/luci/luci.mkk|g' "$file"
+              if grep -q 'include $(TOPDIR)/feeds/luci/luci.mkk' "$file"; then
                 ((modified_count++))
                 echo "  → 修改成功"
               else
@@ -389,8 +389,8 @@ jobs:
             [ -f "$file" ] || continue
             if grep -q 'include \(\.\./\)\+lang/golang/golang-package\.mk' "$file"; then
               echo "修复 $file 中的 golang-package.mk 引用..."
-              sed -i 's|include \(\.\./\)\+lang/golang/golang-package\.mk|include $(INCLUDE_DIR)/golang-package.mk|g' "$file"
-              if grep -q 'include $(INCLUDE_DIR)/golang-package.mk' "$file"; then
+              sed -i 's|include \(\.\./\)\+lang/golang/golang-package\.mk|include $(TOPDIR)/feeds/packages/lang/golang/golang-package.mk|g' "$file"
+              if grep -q 'include $(TOPDIR)/feeds/packages/lang/golang/golang-package.mk' "$file"; then
                 ((modified_count++))
                 echo "  → 修改成功"
               else
