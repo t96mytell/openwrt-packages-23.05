@@ -13,6 +13,6 @@ PKG_NAME:=luci-app-uugamebooster
 PKG_VERSION:=2.0
 PKG_RELEASE:=1
 
-include $(INCLUDE_DIR)/luci.mk
+include $(TOPDIR)/feeds/luci/luci.mkk
 
 # call BuildPackage - OpenWrt buildroot signature
