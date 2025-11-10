@@ -480,7 +480,7 @@ jobs:
           MAKEFILE="runc/Makefile"
 
           # 定义变量
-          RUNC_PKG_VERSION="1.3.0"
+          RUNC_PKG_VERSION="1.3.3"
           RUNC_PKG_RELEASE="1"
           
           PKG_GIT_URL="github.com/opencontainers/runc"
@@ -542,7 +542,7 @@ jobs:
           MAKEFILE="dockerd/Makefile"
 
           # 定义变量
-          DOCKER_PKG_VERSION="28.5.0"
+          DOCKER_PKG_VERSION="28.5.2"
           DOCKER_PKG_RELEASE="1"
           
           PKG_GIT_URL="github.com/moby/moby"
@@ -705,7 +705,7 @@ jobs:
           MAKEFILE="docker/Makefile"
 
           # 定义变量
-          DOCKER_CLI_PKG_VERSION="28.5.0"
+          DOCKER_CLI_PKG_VERSION="28.5.2"
           DOCKER_CLI_PKG_RELEASE="2"
           
           PKG_GIT_URL="github.com/docker/cli"
