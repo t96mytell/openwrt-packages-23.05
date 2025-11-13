@@ -546,7 +546,7 @@ jobs:
           DOCKER_PKG_RELEASE="1"
           
           PKG_GIT_URL="github.com/moby/moby"
-          PKG_GIT_REF="v$DOCKER_PKG_VERSION"
+          PKG_GIT_REF="docker-v$DOCKER_PKG_VERSION"
           PKG_SOURCE_URL="https://codeload.$PKG_GIT_URL/tar.gz/$PKG_GIT_REF"
 
           # 下载源码 tarball
