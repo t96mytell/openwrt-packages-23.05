@@ -571,7 +571,7 @@ jobs:
           # 步骤 : 替换 PKG_GIT_REF
           echo "步骤 : 替换 PKG_GIT_REF"
           if grep -q "^PKG_GIT_REF:=" "$MAKEFILE"; then
-            sed -i "s|^PKG_GIT_REF:=.*|PKG_GIT_REF:=docker-v$(PKG_VERSION)|" "$MAKEFILE"
+            sed -i "s|^PKG_GIT_REF:=.*|PKG_GIT_REF:=docker-v\$(PKG_VERSION)|" "$MAKEFILE"
             REPORT+="已更新 PKG_GIT_REF\n"
           else
             REPORT+="跳过：未找到 PKG_GIT_REF 变量\n"
