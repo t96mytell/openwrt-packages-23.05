@@ -580,7 +580,7 @@ jobs:
           DOCKER_PKG_RELEASE="1"
           
           PKG_GIT_URL="github.com/moby/moby"
-          TAG_PREFIX="v"
+          TAG_PREFIX="docker-v"
           PKG_GIT_REF="${TAG_PREFIX}${DOCKER_PKG_VERSION}"
           PKG_SOURCE_URL="https://codeload.${PKG_GIT_URL}/tar.gz/${PKG_GIT_REF}"
 
