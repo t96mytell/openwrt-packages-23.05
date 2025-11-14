@@ -216,11 +216,7 @@ jobs:
           # 同步openwrt/packages
           sync_repo "github.com/openwrt/packages.git" "master" "openwrt-packages" \
             "net/keepalived:keepalived,\
-            utils/runc:runc,\
-            utils/tini:tini,\
-            utils/docker:docker,\
-            utils/dockerd:dockerd,\
-            utils/containerd:containerd"
+            utils/tini:tini,\"
 
           # 同步openwrt/luci
           sync_repo "github.com/openwrt/luci.git" "master" "openwrt-luci" \
