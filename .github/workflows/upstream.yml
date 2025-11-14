@@ -533,7 +533,6 @@ jobs:
           echo -e "\n===== 合并操作报告 ====="
           echo -e "$REPORT"
 
-
       # Step 6: 自定义 Docker 社区版守护进程依赖
       - name: Customizing Docker CE daemon dependencies
         run: |
@@ -546,8 +545,9 @@ jobs:
           DOCKER_PKG_RELEASE="1"
           
           PKG_GIT_URL="github.com/moby/moby"
-          PKG_GIT_REF="docker-v$DOCKER_PKG_VERSION"
-          PKG_SOURCE_URL="https://codeload.$PKG_GIT_URL/tar.gz/$PKG_GIT_REF"
+          DOCKER_TAG_PREFIX="docker-v"
+          PKG_GIT_REF="\$(DOCKER_TAG_PREFIX)\$(PKG_VERSION)"
+          PKG_SOURCE_URL="https://codeload.$PKG_GIT_URL/tar.gz/${DOCKER_TAG_PREFIX}${DOCKER_PKG_VERSION}"
 
           # 下载源码 tarball
           TMP_DIR=$(mktemp -d)
@@ -557,7 +557,7 @@ jobs:
           DOCKER_PKG_HASH=$(sha256sum "$TMP_DIR/source.tar.gz" | cut -d' ' -f1)
           
           # 获取短 commit
-          git clone --depth 1 --branch "$PKG_GIT_REF" "https://$PKG_GIT_URL" "$TMP_DIR/git-src"
+          git clone --depth 1 --branch "${DOCKER_TAG_PREFIX}${DOCKER_PKG_VERSION}" "https://$PKG_GIT_URL" "$TMP_DIR/git-src"
           DOCKER_PKG_GIT_SHORT_COMMIT=$(git -C "$TMP_DIR/git-src" rev-parse --short HEAD)
           
           # 清理临时目录
@@ -573,11 +573,11 @@ jobs:
             REPORT+="跳过：未找到 PKG_VERSION 变量\n"
           fi
 
-          # 步骤 : 替换 PKG_GIT_REF
+          # 步骤 : 替换 PKG_GIT_REF（保持内部变量引用，不硬编码）
           echo "步骤 : 替换 PKG_GIT_REF"
           if grep -q "^PKG_GIT_REF:=" "$MAKEFILE"; then
-            sed -i "s|^PKG_GIT_REF:=.*|PKG_GIT_REF:=docker-v${DOCKER_PKG_VERSION}|" "$MAKEFILE"
-            REPORT+="已更新 PKG_GIT_REF 为 docker-v${DOCKER_PKG_VERSION}\n"
+            sed -i "s|^PKG_GIT_REF:=.*|PKG_GIT_REF:=${PKG_GIT_REF}|" "$MAKEFILE"
+            REPORT+="已更新 PKG_GIT_REF 为内部变量组合形式\n"
           else
             REPORT+="跳过：未找到 PKG_GIT_REF 变量\n"
           fi
@@ -590,8 +590,6 @@ jobs:
           else
             REPORT+="跳过：未找到 PKG_HASH 变量\n"
           fi
-
-          
 
           # 步骤 : 替换 PKG_GIT_SHORT_COMMIT
           echo "步骤 : 替换 PKG_GIT_SHORT_COMMIT"
