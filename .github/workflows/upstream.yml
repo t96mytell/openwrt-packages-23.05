@@ -418,11 +418,11 @@ jobs:
           MAKEFILE="containerd/Makefile"
 
           # 定义变量
-          TAG_PREFIX="v"
           CONTAINERD_PKG_VERSION="1.7.28"
           CONTAINERD_PKG_RELEASE="1"
           
           PKG_GIT_URL="github.com/containerd/containerd"
+          TAG_PREFIX="v"
           PKG_GIT_REF="${TAG_PREFIX}${CONTAINERD_PKG_VERSION}"
           PKG_SOURCE_URL="https://codeload.${PKG_GIT_URL}/tar.gz/${PKG_GIT_REF}"
 
@@ -497,11 +497,11 @@ jobs:
           MAKEFILE="runc/Makefile"
 
           # 定义变量
-          TAG_PREFIX="v"
           RUNC_PKG_VERSION="1.3.3"
           RUNC_PKG_RELEASE="1"
           
           PKG_GIT_URL="github.com/opencontainers/runc"
+          TAG_PREFIX="v"
           PKG_GIT_REF="${TAG_PREFIX}${RUNC_PKG_VERSION}"
           PKG_SOURCE_URL="https://codeload.${PKG_GIT_URL}/tar.gz/${PKG_GIT_REF}"
 
@@ -576,11 +576,11 @@ jobs:
           MAKEFILE="dockerd/Makefile"
 
           # 定义变量
-          TAG_PREFIX="docker-v"
           DOCKER_PKG_VERSION="29.0.0"
           DOCKER_PKG_RELEASE="1"
           
           PKG_GIT_URL="github.com/moby/moby"
+          TAG_PREFIX="v"
           PKG_GIT_REF="${TAG_PREFIX}${DOCKER_PKG_VERSION}"
           PKG_SOURCE_URL="https://codeload.${PKG_GIT_URL}/tar.gz/${PKG_GIT_REF}"
 
@@ -653,11 +653,11 @@ jobs:
           MAKEFILE="docker/Makefile"
 
           # 定义变量
-          TAG_PREFIX="docker-v"
           DOCKER_CLI_PKG_VERSION="29.0.0"
           DOCKER_CLI_PKG_RELEASE="2"
           
           PKG_GIT_URL="github.com/docker/cli"
+          TAG_PREFIX="v"
           PKG_GIT_REF="${TAG_PREFIX}${DOCKER_CLI_PKG_VERSION}"
           PKG_SOURCE_URL="https://codeload.$PKG_GIT_URL/tar.gz/$PKG_GIT_REF"
           
