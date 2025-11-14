@@ -59,7 +59,14 @@ Build/Compile=$(call Build/Compile/Default)
 
 define Package/containerd/install
 	$(INSTALL_DIR) $(1)/usr/bin/
-	$(INSTALL_BIN) $(PKG_INSTALL_DIR)/bin/{ctr,containerd,containerd-stress,containerd-shim,containerd-shim-runc-v1,containerd-shim-runc-v2} $(1)/usr/bin/
+
+	# Optional binaries; only install if built
+	BINS := ctr containerd containerd-stress containerd-shim containerd-shim-runc-v1 containerd-shim-runc-v2
+
+	for bin in $(BINS); do \
+		path="$(PKG_INSTALL_DIR)/bin/$$bin"; \
+		[ -f "$$path" ] && $(INSTALL_BIN) "$$path" $(1)/usr/bin/; \
+	done
 endef
 
 $(eval $(call BuildPackage,containerd))
