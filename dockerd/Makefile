@@ -50,6 +50,9 @@ define Package/dockerd
   +fuse-overlayfs \
   +kmod-vxlan +kmod-macvlan +kmod-dummy +kmod-crypto-gcm +kmod-crypto-seqiv +kmod-crypto-ghash \
   +kmod-ipsec +kmod-nf-nathelper +kmod-nf-nathelper-extra +btrfs-progs \
+  +fuse-overlayfs \
+  +kmod-vxlan +kmod-macvlan +kmod-dummy +kmod-crypto-gcm +kmod-crypto-seqiv +kmod-crypto-ghash \
+  +kmod-ipsec +kmod-nf-nathelper +kmod-nf-nathelper-extra +btrfs-progs \
     @!(mips||mips64||mipsel)
   USERID:=docker:docker
   MENU:=1
@@ -97,9 +100,9 @@ define Build/Prepare
 	$(Build/Prepare/Default)
 
 	# Verify dependencies are the vendored version
-	$(call EnsureVendoredVersion,../../packages/utils/containerd/Makefile,containerd.installer)
-	$(call EnsureVendoredVersion,../../packages/utils/runc/Makefile,runc.installer)
-	$(call EnsureVendoredVersion,../../packages/utils/tini/Makefile,tini.installer)
+	$(call EnsureVendoredVersion,../../packages/uti../../packages/utils/containerd/Makefile,containerd.installer)
+	$(call EnsureVendoredVersion,../../packages/uti../../packages/utils/runc/Makefile,runc.installer)
+	$(call EnsureVendoredVersion,../../packages/uti../../packages/utils/tini/Makefile,tini.installer)
 
 	# Verify CLI is the same version
 	( \
