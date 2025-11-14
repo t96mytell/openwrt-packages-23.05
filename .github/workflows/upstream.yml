@@ -410,7 +410,6 @@ jobs:
           echo "跳过了 $skipped_count 个文件"
           echo "========================================"
 
-
       # Step 4: 自定义 containerd 包
       - name: Customizing containerd package
         run: |
@@ -441,7 +440,7 @@ jobs:
           # 清理临时目录
           rm -rf "$TMP_DIR"
 
-          # 替换 PKG_VERSION 和 PKG_RELEASE
+          # 步骤 : 替换 PKG_VERSION 和 PKG_RELEASE
           echo "步骤 : 替换 PKG_VERSION 和 PKG_RELEASE"
           if grep -q "^PKG_VERSION:=" "$MAKEFILE"; then
             sed -i "s/^PKG_VERSION:=.*/PKG_VERSION:=${CONTAINERD_PKG_VERSION}/" "$MAKEFILE"
@@ -451,7 +450,7 @@ jobs:
             REPORT+="跳过：未找到 PKG_VERSION 变量\n"
           fi
 
-          # 替换 PKG_HASH
+          # 步骤 : 替换 PKG_HASH
           echo "步骤 : 替换 PKG_HASH"
           if grep -q "^PKG_HASH:=" "$MAKEFILE"; then
             sed -i "s/^PKG_HASH:=.*/PKG_HASH:=${CONTAINERD_PKG_HASH}/" "$MAKEFILE"
@@ -460,7 +459,7 @@ jobs:
             REPORT+="跳过：未找到 PKG_HASH 变量\n"
           fi
 
-          # 替换 PKG_GIT_SHORT_COMMIT
+          # 步骤 : 替换 PKG_GIT_SHORT_COMMIT
           echo "步骤 : 替换 PKG_GIT_SHORT_COMMIT"
           if grep -q "^PKG_GIT_SHORT_COMMIT:=" "$MAKEFILE"; then
             sed -i "s/^PKG_GIT_SHORT_COMMIT:=.*/PKG_GIT_SHORT_COMMIT:=${CONTAINERD_PKG_GIT_SHORT_COMMIT}/" "$MAKEFILE"
@@ -469,7 +468,7 @@ jobs:
             REPORT+="跳过：未找到 PKG_GIT_SHORT_COMMIT 变量\n"
           fi
 
-          # 替换 PKG_GIT_REF
+          # 步骤 : 替换 PKG_GIT_REF
           echo "步骤 : 替换 PKG_GIT_REF"
           if grep -q "^PKG_GIT_REF:=" "$MAKEFILE"; then
             sed -i "s|^PKG_GIT_REF:=.*|PKG_GIT_REF:=$(TAG_PREFIX)$(PKG_VERSION)|" "$MAKEFILE"
@@ -478,15 +477,18 @@ jobs:
             REPORT+="跳过：未找到 PKG_GIT_REF 变量\n"
           fi
 
+          # 最终报告
           echo -e "\n===== 合并操作报告 ====="
           echo -e "$REPORT"
 
       # Step 5: 自定义 runc 包
       - name: Customizing runc package
         run: |
+          # 初始化报告变量
           REPORT=""
           MAKEFILE="runc/Makefile"
 
+          # 定义变量
           RUNC_PKG_VERSION="1.3.3"
           RUNC_PKG_RELEASE="1"
 
@@ -495,16 +497,21 @@ jobs:
           PKG_GIT_REF="$(TAG_PREFIX)$(RUNC_PKG_VERSION)"
           PKG_SOURCE_URL="https://codeload.$PKG_GIT_URL/tar.gz/$PKG_GIT_REF"
 
+          # 下载源码 tarball
           TMP_DIR=$(mktemp -d)
           wget -O "$TMP_DIR/source.tar.gz" "$PKG_SOURCE_URL"
 
+          # 计算 SHA256
           RUNC_PKG_HASH=$(sha256sum "$TMP_DIR/source.tar.gz" | cut -d' ' -f1)
 
+          # 获取短 commit
           git clone --depth 1 --branch "$PKG_GIT_REF" "https://$PKG_GIT_URL" "$TMP_DIR/git-src"
           RUNC_PKG_GIT_SHORT_COMMIT=$(git -C "$TMP_DIR/git-src" rev-parse --short HEAD)
 
+          # 清理临时目录
           rm -rf "$TMP_DIR"
 
+          # 步骤 : 替换 PKG_VERSION 和 PKG_RELEASE
           echo "步骤 : 替换 PKG_VERSION 和 PKG_RELEASE"
           if grep -q "^PKG_VERSION:=" "$MAKEFILE"; then
             sed -i "s/^PKG_VERSION:=.*/PKG_VERSION:=${RUNC_PKG_VERSION}/" "$MAKEFILE"
@@ -514,6 +521,7 @@ jobs:
             REPORT+="跳过：未找到 PKG_VERSION 变量\n"
           fi
 
+          # 步骤 : 替换 PKG_HASH
           echo "步骤 : 替换 PKG_HASH"
           if grep -q "^PKG_HASH:=" "$MAKEFILE"; then
             sed -i "s/^PKG_HASH:=.*/PKG_HASH:=${RUNC_PKG_HASH}/" "$MAKEFILE"
@@ -522,6 +530,7 @@ jobs:
             REPORT+="跳过：未找到 PKG_HASH 变量\n"
           fi
 
+          # 步骤 : 替换 PKG_GIT_SHORT_COMMIT
           echo "步骤 : 替换 PKG_GIT_SHORT_COMMIT"
           if grep -q "^PKG_GIT_SHORT_COMMIT:=" "$MAKEFILE"; then
             sed -i "s/^PKG_GIT_SHORT_COMMIT:=.*/PKG_GIT_SHORT_COMMIT:=${RUNC_PKG_GIT_SHORT_COMMIT}/" "$MAKEFILE"
@@ -530,6 +539,7 @@ jobs:
             REPORT+="跳过：未找到 PKG_GIT_SHORT_COMMIT 变量\n"
           fi
 
+          # 步骤 : 替换 PKG_GIT_REF
           echo "步骤 : 替换 PKG_GIT_REF"
           if grep -q "^PKG_GIT_REF:=" "$MAKEFILE"; then
             sed -i "s|^PKG_GIT_REF:=.*|PKG_GIT_REF:=$(TAG_PREFIX)$(PKG_VERSION)|" "$MAKEFILE"
@@ -538,15 +548,18 @@ jobs:
             REPORT+="跳过：未找到 PKG_GIT_REF 变量\n"
           fi
 
+          # 最终报告
           echo -e "\n===== 合并操作报告 ====="
           echo -e "$REPORT"
 
-      # Step 6: 自定义 Docker CE 守护进程
+      # Step 6: 自定义 Docker 社区版守护进程依赖
       - name: Customizing Docker CE daemon dependencies
         run: |
+          # 初始化报告变量
           REPORT=""
           MAKEFILE="dockerd/Makefile"
 
+          # 定义变量
           DOCKER_PKG_VERSION="29.0.0"
           DOCKER_PKG_RELEASE="1"
 
@@ -555,16 +568,21 @@ jobs:
           PKG_GIT_REF="$(TAG_PREFIX)$(DOCKER_PKG_VERSION)"
           PKG_SOURCE_URL="https://codeload.$PKG_GIT_URL/tar.gz/$PKG_GIT_REF"
 
+          # 下载源码 tarball
           TMP_DIR=$(mktemp -d)
           wget -O "$TMP_DIR/source.tar.gz" "$PKG_SOURCE_URL"
 
+          # 计算 SHA256
           DOCKER_PKG_HASH=$(sha256sum "$TMP_DIR/source.tar.gz" | cut -d' ' -f1)
 
+          # 获取短 commit
           git clone --depth 1 --branch "$PKG_GIT_REF" "https://$PKG_GIT_URL" "$TMP_DIR/git-src"
           DOCKER_PKG_GIT_SHORT_COMMIT=$(git -C "$TMP_DIR/git-src" rev-parse --short HEAD)
 
+          # 清理临时目录
           rm -rf "$TMP_DIR"
 
+          # 步骤 : 在 Makefile 中插入 TAG_PREFIX（如果不存在）
           if ! grep -q "^TAG_PREFIX:=" "$MAKEFILE"; then
             sed -i "/^PKG_GIT_URL:=.*/a TAG_PREFIX:=docker-v" "$MAKEFILE"
             REPORT+="已插入 TAG_PREFIX 变量\n"
@@ -572,6 +590,7 @@ jobs:
             REPORT+="跳过：TAG_PREFIX 已存在\n"
           fi
 
+          # 步骤 : 替换 PKG_VERSION 和 PKG_RELEASE
           echo "步骤 : 替换 PKG_VERSION 和 PKG_RELEASE"
           if grep -q "^PKG_VERSION:=" "$MAKEFILE"; then
             sed -i "s/^PKG_VERSION:=.*/PKG_VERSION:=${DOCKER_PKG_VERSION}/" "$MAKEFILE"
@@ -581,6 +600,7 @@ jobs:
             REPORT+="跳过：未找到 PKG_VERSION 变量\n"
           fi
 
+          # 步骤 : 替换 PKG_GIT_REF
           echo "步骤 : 替换 PKG_GIT_REF"
           if grep -q "^PKG_GIT_REF:=" "$MAKEFILE"; then
             sed -i "s|^PKG_GIT_REF:=.*|PKG_GIT_REF:=$(TAG_PREFIX)$(PKG_VERSION)|" "$MAKEFILE"
@@ -589,6 +609,7 @@ jobs:
             REPORT+="跳过：未找到 PKG_GIT_REF 变量\n"
           fi
 
+          # 步骤 : 替换 PKG_HASH
           echo "步骤 : 替换 PKG_HASH"
           if grep -q "^PKG_HASH:=" "$MAKEFILE"; then
             sed -i "s/^PKG_HASH:=.*/PKG_HASH:=${DOCKER_PKG_HASH}/" "$MAKEFILE"
@@ -597,6 +618,7 @@ jobs:
             REPORT+="跳过：未找到 PKG_HASH 变量\n"
           fi
 
+          # 步骤 : 替换 PKG_GIT_SHORT_COMMIT
           echo "步骤 : 替换 PKG_GIT_SHORT_COMMIT"
           if grep -q "^PKG_GIT_SHORT_COMMIT:=" "$MAKEFILE"; then
             sed -i "s/^PKG_GIT_SHORT_COMMIT:=.*/PKG_GIT_SHORT_COMMIT:=${DOCKER_PKG_GIT_SHORT_COMMIT}/" "$MAKEFILE"
@@ -605,15 +627,18 @@ jobs:
             REPORT+="跳过：未找到 PKG_GIT_SHORT_COMMIT 变量\n"
           fi
 
+          # 最终报告
           echo -e "\n===== 合并操作报告 ====="
           echo -e "$REPORT"
 
       # Step 7: 自定义 Docker CLI 包
       - name: Customizing docker CLI package
         run: |
+          # 初始化报告变量
           REPORT=""
           MAKEFILE="docker/Makefile"
 
+          # 定义变量
           DOCKER_CLI_PKG_VERSION="29.0.0"
           DOCKER_CLI_PKG_RELEASE="2"
 
@@ -622,16 +647,21 @@ jobs:
           PKG_GIT_REF="$(TAG_PREFIX)$(DOCKER_CLI_PKG_VERSION)"
           PKG_SOURCE_URL="https://codeload.$PKG_GIT_URL/tar.gz/$PKG_GIT_REF"
 
+          # 下载源码 tarball
           TMP_DIR=$(mktemp -d)
           wget -O "$TMP_DIR/source.tar.gz" "$PKG_SOURCE_URL"
 
+          # 计算 SHA256
           DOCKER_CLI_PKG_HASH=$(sha256sum "$TMP_DIR/source.tar.gz" | cut -d' ' -f1)
 
+          # 获取短 commit
           git clone --depth 1 --branch "$PKG_GIT_REF" "https://$PKG_GIT_URL" "$TMP_DIR/git-src"
           DOCKER_CLI_PKG_GIT_SHORT_COMMIT=$(git -C "$TMP_DIR/git-src" rev-parse --short HEAD)
 
+          # 清理临时目录
           rm -rf "$TMP_DIR"
 
+          # 步骤 : 替换 PKG_VERSION 和 PKG_RELEASE
           echo "步骤 : 替换 PKG_VERSION 和 PKG_RELEASE"
           if grep -q "^PKG_VERSION:=" "$MAKEFILE"; then
             sed -i "s/^PKG_VERSION:=.*/PKG_VERSION:=${DOCKER_CLI_PKG_VERSION}/" "$MAKEFILE"
@@ -641,6 +671,7 @@ jobs:
             REPORT+="跳过：未找到 PKG_VERSION 变量\n"
           fi
 
+          # 步骤 : 替换 PKG_GIT_REF
           echo "步骤 : 替换 PKG_GIT_REF"
           if grep -q "^PKG_GIT_REF:=" "$MAKEFILE"; then
             sed -i "s|^PKG_GIT_REF:=.*|PKG_GIT_REF:=$(TAG_PREFIX)$(PKG_VERSION)|" "$MAKEFILE"
@@ -649,6 +680,7 @@ jobs:
             REPORT+="跳过：未找到 PKG_GIT_REF 变量\n"
           fi
 
+          # 步骤 : 替换 PKG_HASH
           echo "步骤 : 替换 PKG_HASH"
           if grep -q "^PKG_HASH:=" "$MAKEFILE"; then
             sed -i "s/^PKG_HASH:=.*/PKG_HASH:=${DOCKER_CLI_PKG_HASH}/" "$MAKEFILE"
@@ -657,6 +689,7 @@ jobs:
             REPORT+="跳过：未找到 PKG_HASH 变量\n"
           fi
 
+          # 步骤 : 替换 PKG_GIT_SHORT_COMMIT
           echo "步骤 : 替换 PKG_GIT_SHORT_COMMIT"
           if grep -q "^PKG_GIT_SHORT_COMMIT:=" "$MAKEFILE"; then
             sed -i "s/^PKG_GIT_SHORT_COMMIT:=.*/PKG_GIT_SHORT_COMMIT:=${DOCKER_CLI_PKG_GIT_SHORT_COMMIT}/" "$MAKEFILE"
@@ -665,10 +698,9 @@ jobs:
             REPORT+="跳过：未找到 PKG_GIT_SHORT_COMMIT 变量\n"
           fi
 
+          # 最终报告
           echo -e "\n===== 合并操作报告 ====="
           echo -e "$REPORT"
-
-
       
       # Step 8: 配置Git凭据
       - name: Configure Git Credentials
