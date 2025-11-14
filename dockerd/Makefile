@@ -8,7 +8,7 @@ PKG_LICENSE_FILES:=LICENSE
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_GIT_URL:=github.com/moby/moby
-PKG_GIT_REF:=docker-v29.0.0
+PKG_GIT_REF:=docker-v
 PKG_SOURCE_URL:=https://codeload.$(PKG_GIT_URL)/tar.gz/$(PKG_GIT_REF)?
 PKG_HASH:=5d0f9bb3c5210a14c8c2fcaebb9949f2f69514e4b41a17dba69dff36ab0d764b
 PKG_GIT_SHORT_COMMIT:=d105562
