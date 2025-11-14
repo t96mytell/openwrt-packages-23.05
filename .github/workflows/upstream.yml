@@ -541,9 +541,8 @@ jobs:
           DOCKER_PKG_VERSION="29.0.0"
           DOCKER_PKG_RELEASE="1"
           PKG_GIT_URL="github.com/moby/moby"
-          DOCKER_TAG_PREFIX="docker-v"
-          PKG_GIT_REF="${DOCKER_TAG_PREFIX}${DOCKER_PKG_VERSION}"
-          PKG_SOURCE_URL="https://codeload.${PKG_GIT_URL}/tar.gz/${DOCKER_TAG_PREFIX}${DOCKER_PKG_VERSION}"
+          PKG_GIT_REF="docker-v${DOCKER_PKG_VERSION}"
+          PKG_SOURCE_URL="https://codeload.${PKG_GIT_URL}/tar.gz/docker-v${DOCKER_PKG_VERSION}"
 
           # 下载源码 tarball
           TMP_DIR=$(mktemp -d)
@@ -553,18 +552,11 @@ jobs:
           DOCKER_PKG_HASH=$(sha256sum "$TMP_DIR/source.tar.gz" | cut -d' ' -f1)
 
           # 获取短 commit
-          git clone --depth 1 --branch "${DOCKER_TAG_PREFIX}${DOCKER_PKG_VERSION}" "https://$PKG_GIT_URL" "$TMP_DIR/git-src"
+          git clone --depth 1 --branch "docker-v${DOCKER_PKG_VERSION}" "https://$PKG_GIT_URL" "$TMP_DIR/git-src"
           DOCKER_PKG_GIT_SHORT_COMMIT=$(git -C "$TMP_DIR/git-src" rev-parse --short HEAD)
 
           # 清理临时目录
           rm -rf "$TMP_DIR"
-          # 步骤 : 在 Makefile 中插入 TAG_PREFIX（如果不存在）
-          if ! grep -q "^TAG_PREFIX:=" "$MAKEFILE"; then
-            sed -i "/^PKG_GIT_URL:=.*/a TAG_PREFIX:=docker-v" "$MAKEFILE"
-            REPORT+="已插入 TAG_PREFIX 变量\n"
-          else
-            REPORT+="跳过：TAG_PREFIX 已存在\n"
-          fi
 
           # 步骤 : 替换 PKG_VERSION 和 PKG_RELEASE
           echo "步骤 : 替换 PKG_VERSION 和 PKG_RELEASE"
