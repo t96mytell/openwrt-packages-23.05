@@ -420,11 +420,9 @@ jobs:
           # 定义变量
           CONTAINERD_PKG_VERSION="1.7.28"
           CONTAINERD_PKG_RELEASE="1"
-          
           PKG_GIT_URL="github.com/containerd/containerd"
-          TAG_PREFIX="v"
-          PKG_GIT_REF="${TAG_PREFIX}${CONTAINERD_PKG_VERSION}"
-          PKG_SOURCE_URL="https://codeload.${PKG_GIT_URL}/tar.gz/${PKG_GIT_REF}"
+          PKG_GIT_REF="v$CONTAINERD_PKG_VERSION"
+          PKG_SOURCE_URL="https://codeload.$PKG_GIT_URL/tar.gz/$PKG_GIT_REF"
 
           # 下载源码 tarball
           TMP_DIR=$(mktemp -d)
@@ -434,19 +432,11 @@ jobs:
           CONTAINERD_PKG_HASH=$(sha256sum "$TMP_DIR/source.tar.gz" | cut -d' ' -f1)
 
           # 获取短 commit
-          git clone --depth 1 --branch "${PKG_GIT_REF}" "https://$PKG_GIT_URL" "$TMP_DIR/git-src"
+          git clone --depth 1 --branch "$PKG_GIT_REF" "https://$PKG_GIT_URL" "$TMP_DIR/git-src"
           CONTAINERD_PKG_GIT_SHORT_COMMIT=$(git -C "$TMP_DIR/git-src" rev-parse --short HEAD)
 
           # 清理临时目录
           rm -rf "$TMP_DIR"
-
-          # 步骤 : 在 Makefile 中插入 TAG_PREFIX（如果不存在）
-          if ! grep -q "^TAG_PREFIX:=" "$MAKEFILE"; then
-            sed -i "/^PKG_GIT_URL:=.*/a TAG_PREFIX:=${TAG_PREFIX}" "$MAKEFILE"
-            REPORT+="已插入 TAG_PREFIX 变量\n"
-          else
-            REPORT+="跳过：TAG_PREFIX 已存在\n"
-          fi
 
           # 步骤 : 替换 PKG_VERSION 和 PKG_RELEASE
           echo "步骤 : 替换 PKG_VERSION 和 PKG_RELEASE"
@@ -456,15 +446,6 @@ jobs:
             REPORT+="已更新 PKG_VERSION 和 PKG_RELEASE\n"
           else
             REPORT+="跳过：未找到 PKG_VERSION 变量\n"
-          fi
-
-          # 步骤 : 替换 PKG_GIT_REF
-          echo "步骤 : 替换 PKG_GIT_REF"
-          if grep -q "^PKG_GIT_REF:=" "$MAKEFILE"; then
-            sed -i "s|^PKG_GIT_REF:=.*|PKG_GIT_REF:=${PKG_GIT_REF}|" "$MAKEFILE"
-            REPORT+="已更新 PKG_GIT_REF\n"
-          else
-            REPORT+="跳过：未找到 PKG_GIT_REF 变量\n"
           fi
 
           # 步骤 : 替换 PKG_HASH
@@ -499,11 +480,9 @@ jobs:
           # 定义变量
           RUNC_PKG_VERSION="1.3.3"
           RUNC_PKG_RELEASE="1"
-          
           PKG_GIT_URL="github.com/opencontainers/runc"
-          TAG_PREFIX="v"
-          PKG_GIT_REF="${TAG_PREFIX}${RUNC_PKG_VERSION}"
-          PKG_SOURCE_URL="https://codeload.${PKG_GIT_URL}/tar.gz/${PKG_GIT_REF}"
+          PKG_GIT_REF="v$RUNC_PKG_VERSION"
+          PKG_SOURCE_URL="https://codeload.$PKG_GIT_URL/tar.gz/$PKG_GIT_REF"
 
           # 下载源码 tarball
           TMP_DIR=$(mktemp -d)
@@ -513,19 +492,11 @@ jobs:
           RUNC_PKG_HASH=$(sha256sum "$TMP_DIR/source.tar.gz" | cut -d' ' -f1)
 
           # 获取短 commit
-          git clone --depth 1 --branch "${PKG_GIT_REF}" "https://$PKG_GIT_URL" "$TMP_DIR/git-src"
+          git clone --depth 1 --branch "$PKG_GIT_REF" "https://$PKG_GIT_URL" "$TMP_DIR/git-src"
           RUNC_PKG_GIT_SHORT_COMMIT=$(git -C "$TMP_DIR/git-src" rev-parse --short HEAD)
 
           # 清理临时目录
           rm -rf "$TMP_DIR"
-
-          # 步骤 : 在 Makefile 中插入 TAG_PREFIX（如果不存在）
-          if ! grep -q "^TAG_PREFIX:=" "$MAKEFILE"; then
-            sed -i "/^PKG_GIT_URL:=.*/a TAG_PREFIX:=${TAG_PREFIX}" "$MAKEFILE"
-            REPORT+="已插入 TAG_PREFIX 变量\n"
-          else
-            REPORT+="跳过：TAG_PREFIX 已存在\n"
-          fi
 
           # 步骤 : 替换 PKG_VERSION 和 PKG_RELEASE
           echo "步骤 : 替换 PKG_VERSION 和 PKG_RELEASE"
@@ -535,15 +506,6 @@ jobs:
             REPORT+="已更新 PKG_VERSION 和 PKG_RELEASE\n"
           else
             REPORT+="跳过：未找到 PKG_VERSION 变量\n"
-          fi
-
-          # 步骤 : 替换 PKG_GIT_REF
-          echo "步骤 : 替换 PKG_GIT_REF"
-          if grep -q "^PKG_GIT_REF:=" "$MAKEFILE"; then
-            sed -i "s|^PKG_GIT_REF:=.*|PKG_GIT_REF:=${PKG_GIT_REF}|" "$MAKEFILE"
-            REPORT+="已更新 PKG_GIT_REF\n"
-          else
-            REPORT+="跳过：未找到 PKG_GIT_REF 变量\n"
           fi
 
           # 步骤 : 替换 PKG_HASH
@@ -578,11 +540,10 @@ jobs:
           # 定义变量
           DOCKER_PKG_VERSION="29.0.0"
           DOCKER_PKG_RELEASE="1"
-          
           PKG_GIT_URL="github.com/moby/moby"
-          TAG_PREFIX="docker-v"
-          PKG_GIT_REF="${TAG_PREFIX}${DOCKER_PKG_VERSION}"
-          PKG_SOURCE_URL="https://codeload.${PKG_GIT_URL}/tar.gz/${PKG_GIT_REF}"
+          DOCKER_TAG_PREFIX="docker-v"
+          PKG_GIT_REF="${DOCKER_TAG_PREFIX}${DOCKER_PKG_VERSION}"
+          PKG_SOURCE_URL="https://codeload.${PKG_GIT_URL}/tar.gz/${DOCKER_TAG_PREFIX}${DOCKER_PKG_VERSION}"
 
           # 下载源码 tarball
           TMP_DIR=$(mktemp -d)
@@ -590,17 +551,16 @@ jobs:
 
           # 计算 SHA256
           DOCKER_PKG_HASH=$(sha256sum "$TMP_DIR/source.tar.gz" | cut -d' ' -f1)
-          
+
           # 获取短 commit
-          git clone --depth 1 --branch "${PKG_GIT_REF}" "https://$PKG_GIT_URL" "$TMP_DIR/git-src"
+          git clone --depth 1 --branch "${DOCKER_TAG_PREFIX}${DOCKER_PKG_VERSION}" "https://$PKG_GIT_URL" "$TMP_DIR/git-src"
           DOCKER_PKG_GIT_SHORT_COMMIT=$(git -C "$TMP_DIR/git-src" rev-parse --short HEAD)
-          
+
           # 清理临时目录
           rm -rf "$TMP_DIR"
-
           # 步骤 : 在 Makefile 中插入 TAG_PREFIX（如果不存在）
           if ! grep -q "^TAG_PREFIX:=" "$MAKEFILE"; then
-            sed -i "/^PKG_GIT_URL:=.*/a TAG_PREFIX:=${TAG_PREFIX}" "$MAKEFILE"
+            sed -i "/^PKG_GIT_URL:=.*/a TAG_PREFIX:=docker-v" "$MAKEFILE"
             REPORT+="已插入 TAG_PREFIX 变量\n"
           else
             REPORT+="跳过：TAG_PREFIX 已存在\n"
@@ -643,7 +603,101 @@ jobs:
             REPORT+="跳过：未找到 PKG_GIT_SHORT_COMMIT 变量\n"
           fi
 
-          # 后续步骤保持原逻辑（替换 ca-bundle、添加依赖、修改路径、UCI 配置等）
+          # 步骤 : 替换 ca-bundle 为 ca-certificates
+          echo "步骤 : 替换 ca-bundle 为 ca-certificates"
+          if grep -q '\+ca-bundle' "$MAKEFILE"; then
+            sed -i 's/\+ca-bundle/\+ca-certificates/' "$MAKEFILE" || true
+            if grep -q '\+ca-certificates' "$MAKEFILE"; then
+              REPORT+="已将 ca-bundle 替换为 ca-certificates\n"
+            else
+              REPORT+="替换 ca-bundle 失败：未找到 +ca-certificates\n"
+              echo "当前 DEPENDS 内容:"
+              grep -A 10 "DEPENDS:=" "$MAKEFILE" || true
+            fi
+          else
+            REPORT+="跳过：未找到 +ca-bundle 依赖项\n"
+          fi
+
+          # 步骤 : 添加额外依赖项（在 @!(mips||mips64||mipsel) 前插入）
+          echo "步骤 : 添加额外依赖项"
+          if grep -q '@!(mips||mips64||mipsel)' "$MAKEFILE"; then
+            tmpfile=$(mktemp)
+            awk 'BEGIN { inserted=0 } /@!\(mips\|\|mips64\|\|mipsel\)/ && !inserted {
+              # 在锚点前插入这些依赖行（每行末尾保留反斜杠）
+              print "  +fuse-overlayfs \\"
+              print "  +kmod-vxlan +kmod-macvlan +kmod-dummy +kmod-crypto-gcm +kmod-crypto-seqiv +kmod-crypto-ghash \\"
+              print "  +kmod-ipsec +kmod-nf-nathelper +kmod-nf-nathelper-extra +btrfs-progs \\"
+              inserted=1
+            } { print }' "$MAKEFILE" > "$tmpfile" && mv "$tmpfile" "$MAKEFILE"
+            if grep -q '+fuse-overlayfs' "$MAKEFILE" && grep -q '+btrfs-progs' "$MAKEFILE"; then
+              REPORT+="已添加额外依赖项 (fuse-overlayfs, btrfs-progs 等)\n"
+            else
+              REPORT+="添加额外依赖项失败：部分依赖项添加失败\n"
+              echo "当前 DEPENDS 内容:"
+              grep -A 15 "DEPENDS:=" "$MAKEFILE" || true
+            fi
+          else
+            REPORT+="跳过：未找到依赖项锚点 @!(mips||mips64||mipsel)\n"
+          fi
+
+          # 步骤 : 修改依赖检查路径
+          echo "步骤 : 修改依赖检查路径"
+          PATH_CHANGED=0
+          for DEP in containerd runc tini; do
+            OLD_PATH="../$DEP"
+            NEW_PATH="../../packages/utils/$DEP"
+            if grep -q "$OLD_PATH" "$MAKEFILE"; then
+              sed -i "s#${OLD_PATH}#${NEW_PATH}#g" "$MAKEFILE" || true
+              PATH_CHANGED=$((PATH_CHANGED+1))
+            else
+              REPORT+="跳过：未找到 $OLD_PATH 路径\n"
+            fi
+          done
+          if [ $PATH_CHANGED -gt 0 ]; then
+            if grep -q "EnsureVendoredVersion.*../../packages/utils" "$MAKEFILE"; then
+              REPORT+="已修改 ${PATH_CHANGED} 个依赖路径\n"
+            else
+              REPORT+="路径修改可能未生效\n"
+              grep "EnsureVendoredVersion" "$MAKEFILE" || true
+            fi
+          else
+            REPORT+="跳过：未找到需要修改的路径\n"
+          fi
+
+          # 步骤 : 添加 UCI 默认配置（在安装段中插入）
+          echo "步骤 : 添加 UCI 默认配置"
+          INSTALL_ANCHOR='$(INSTALL_BIN) $(PKG_BUILD_DIR)/bundles/binary-daemon/docker-proxy $(1)/usr/bin/'
+          if [ -f "./files/dockerd.uci-defaults" ]; then
+            if grep -q "$INSTALL_ANCHOR" "$MAKEFILE"; then
+              tmpfile=$(mktemp)
+              awk -v anchor="$INSTALL_ANCHOR" 'BEGIN { added=0 } { print } 
+                index($0, anchor) && !added {
+                  print "\t$(INSTALL_DIR) $(1)/etc/uci-defaults"
+                  print "\t$(INSTALL_DATA) ./files/dockerd.uci-defaults $(1)/etc/uci-defaults/dockerd"
+                  added=1
+                }' "$MAKEFILE" > "$tmpfile" && mv "$tmpfile" "$MAKEFILE"
+              if grep -q 'etc/uci-defaults' "$MAKEFILE"; then
+                REPORT+="已添加 UCI 默认配置\n"
+              else
+                REPORT+="添加 UCI 默认配置失败\n"
+                sed -n '/define Package\/dockerd\/install/,/endef/p' "$MAKEFILE" || true
+              fi
+            else
+              REPORT+="跳过：未找到安装锚点\n"
+            fi
+          else
+            echo "警告: ./files/dockerd.uci-defaults 文件不存在，跳过步骤4的 UCI 配置添加"
+            REPORT+="跳过：dockerd.uci-defaults 文件不存在\n"
+          fi
+
+          # 最终报告
+          echo -e "\n===== 合并操作报告 ====="
+          echo -e "$REPORT"
+
+          # 检查 UCI 配置文件是否存在
+          if [ ! -f "./files/dockerd.uci-defaults" ]; then
+            echo "警告: ./files/dockerd.uci-defaults 文件不存在，UCI 配置可能无法正常工作"
+          fi
 
       # Step 7: 自定义 Docker CLI 包
       - name: Customizing docker CLI package
@@ -655,33 +709,23 @@ jobs:
           # 定义变量
           DOCKER_CLI_PKG_VERSION="29.0.0"
           DOCKER_CLI_PKG_RELEASE="2"
-          
           PKG_GIT_URL="github.com/docker/cli"
-          TAG_PREFIX="v"
-          PKG_GIT_REF="${TAG_PREFIX}${DOCKER_CLI_PKG_VERSION}"
+          PKG_GIT_REF="v$DOCKER_CLI_PKG_VERSION"
           PKG_SOURCE_URL="https://codeload.$PKG_GIT_URL/tar.gz/$PKG_GIT_REF"
-          
+
           # 下载源码 tarball
           TMP_DIR=$(mktemp -d)
           wget -O "$TMP_DIR/source.tar.gz" "$PKG_SOURCE_URL"
-          
+
           # 计算 SHA256
           DOCKER_CLI_PKG_HASH=$(sha256sum "$TMP_DIR/source.tar.gz" | cut -d' ' -f1)
-          
+
           # 获取短 commit
-          git clone --depth 1 --branch "${PKG_GIT_REF}" "https://$PKG_GIT_URL" "$TMP_DIR/git-src"
+          git clone --depth 1 --branch "$PKG_GIT_REF" "https://$PKG_GIT_URL" "$TMP_DIR/git-src"
           DOCKER_CLI_PKG_GIT_SHORT_COMMIT=$(git -C "$TMP_DIR/git-src" rev-parse --short HEAD)
-          
+
           # 清理临时目录
           rm -rf "$TMP_DIR"
-
-          # 步骤 : 在 Makefile 中插入 TAG_PREFIX（如果不存在）
-          if ! grep -q "^TAG_PREFIX:=" "$MAKEFILE"; then
-            sed -i "/^PKG_GIT_URL:=.*/a TAG_PREFIX:=${TAG_PREFIX}" "$MAKEFILE"
-            REPORT+="已插入 TAG_PREFIX 变量\n"
-          else
-            REPORT+="跳过：TAG_PREFIX 已存在\n"
-          fi
 
           # 步骤 : 替换 PKG_VERSION 和 PKG_RELEASE
           echo "步骤 : 替换 PKG_VERSION 和 PKG_RELEASE"
@@ -691,15 +735,6 @@ jobs:
             REPORT+="已更新 PKG_VERSION 和 PKG_RELEASE\n"
           else
             REPORT+="跳过：未找到 PKG_VERSION 变量\n"
-          fi
-
-          # 步骤 : 替换 PKG_GIT_REF
-          echo "步骤 : 替换 PKG_GIT_REF"
-          if grep -q "^PKG_GIT_REF:=" "$MAKEFILE"; then
-            sed -i "s|^PKG_GIT_REF:=.*|PKG_GIT_REF:=${PKG_GIT_REF}|" "$MAKEFILE"
-            REPORT+="已更新 PKG_GIT_REF\n"
-          else
-            REPORT+="跳过：未找到 PKG_GIT_REF 变量\n"
           fi
 
           # 步骤 : 替换 PKG_HASH
@@ -723,6 +758,7 @@ jobs:
           # 最终报告
           echo -e "\n===== 合并操作报告 ====="
           echo -e "$REPORT"
+
       
       # Step 8: 配置Git凭据
       - name: Configure Git Credentials
