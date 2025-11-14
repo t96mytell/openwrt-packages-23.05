@@ -546,8 +546,8 @@ jobs:
           
           PKG_GIT_URL="github.com/moby/moby"
           DOCKER_TAG_PREFIX="docker-v"
-          PKG_GIT_REF="\$(DOCKER_TAG_PREFIX)\$(PKG_VERSION)"
-          PKG_SOURCE_URL="https://codeload.$PKG_GIT_URL/tar.gz/${DOCKER_TAG_PREFIX}${DOCKER_PKG_VERSION}"
+          PKG_GIT_REF="${DOCKER_TAG_PREFIX}${DOCKER_PKG_VERSION}"
+          PKG_SOURCE_URL="https://codeload.${PKG_GIT_URL}/tar.gz/${DOCKER_TAG_PREFIX}${DOCKER_PKG_VERSION}"
 
           # 下载源码 tarball
           TMP_DIR=$(mktemp -d)
@@ -563,6 +563,14 @@ jobs:
           # 清理临时目录
           rm -rf "$TMP_DIR"
 
+          # 步骤 : 在 Makefile 中插入 TAG_PREFIX（如果不存在）
+          if ! grep -q "^TAG_PREFIX:=" "$MAKEFILE"; then
+            sed -i "/^PKG_GIT_URL:=.*/a TAG_PREFIX:=docker-v" "$MAKEFILE"
+            REPORT+="已插入 TAG_PREFIX 变量\n"
+          else
+            REPORT+="跳过：TAG_PREFIX 已存在\n"
+          fi
+
           # 步骤 : 替换 PKG_VERSION 和 PKG_RELEASE
           echo "步骤 : 替换 PKG_VERSION 和 PKG_RELEASE"
           if grep -q "^PKG_VERSION:=" "$MAKEFILE"; then
@@ -573,11 +581,11 @@ jobs:
             REPORT+="跳过：未找到 PKG_VERSION 变量\n"
           fi
 
-          # 步骤 : 替换 PKG_GIT_REF（保持内部变量引用，不硬编码）
+          # 步骤 : 替换 PKG_GIT_REF
           echo "步骤 : 替换 PKG_GIT_REF"
           if grep -q "^PKG_GIT_REF:=" "$MAKEFILE"; then
             sed -i "s|^PKG_GIT_REF:=.*|PKG_GIT_REF:=${PKG_GIT_REF}|" "$MAKEFILE"
-            REPORT+="已更新 PKG_GIT_REF 为内部变量组合形式\n"
+            REPORT+="已更新 PKG_GIT_REF\n"
           else
             REPORT+="跳过：未找到 PKG_GIT_REF 变量\n"
           fi
