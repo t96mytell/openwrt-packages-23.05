@@ -418,13 +418,13 @@ jobs:
           MAKEFILE="containerd/Makefile"
 
           # 定义变量
+          TAG_PREFIX="v"
           CONTAINERD_PKG_VERSION="1.7.28"
           CONTAINERD_PKG_RELEASE="1"
           
           PKG_GIT_URL="github.com/containerd/containerd"
-          TAG_PREFIX="v"
-          PKG_GIT_REF="$(TAG_PREFIX)$(CONTAINERD_PKG_VERSION)"
-          PKG_SOURCE_URL="https://codeload.$PKG_GIT_URL/tar.gz/$PKG_GIT_REF"
+          PKG_GIT_REF="${TAG_PREFIX}${CONTAINERD_PKG_VERSION}"
+          PKG_SOURCE_URL="https://codeload.${PKG_GIT_URL}/tar.gz/${PKG_GIT_REF}"
 
           # 下载源码 tarball
           TMP_DIR=$(mktemp -d)
@@ -434,11 +434,19 @@ jobs:
           CONTAINERD_PKG_HASH=$(sha256sum "$TMP_DIR/source.tar.gz" | cut -d' ' -f1)
 
           # 获取短 commit
-          git clone --depth 1 --branch "$PKG_GIT_REF" "https://$PKG_GIT_URL" "$TMP_DIR/git-src"
+          git clone --depth 1 --branch "${PKG_GIT_REF}" "https://$PKG_GIT_URL" "$TMP_DIR/git-src"
           CONTAINERD_PKG_GIT_SHORT_COMMIT=$(git -C "$TMP_DIR/git-src" rev-parse --short HEAD)
 
           # 清理临时目录
           rm -rf "$TMP_DIR"
+
+          # 步骤 : 在 Makefile 中插入 TAG_PREFIX（如果不存在）
+          if ! grep -q "^TAG_PREFIX:=" "$MAKEFILE"; then
+            sed -i "/^PKG_GIT_URL:=.*/a TAG_PREFIX:=${TAG_PREFIX}" "$MAKEFILE"
+            REPORT+="已插入 TAG_PREFIX 变量\n"
+          else
+            REPORT+="跳过：TAG_PREFIX 已存在\n"
+          fi
 
           # 步骤 : 替换 PKG_VERSION 和 PKG_RELEASE
           echo "步骤 : 替换 PKG_VERSION 和 PKG_RELEASE"
@@ -448,6 +456,15 @@ jobs:
             REPORT+="已更新 PKG_VERSION 和 PKG_RELEASE\n"
           else
             REPORT+="跳过：未找到 PKG_VERSION 变量\n"
+          fi
+
+          # 步骤 : 替换 PKG_GIT_REF
+          echo "步骤 : 替换 PKG_GIT_REF"
+          if grep -q "^PKG_GIT_REF:=" "$MAKEFILE"; then
+            sed -i "s|^PKG_GIT_REF:=.*|PKG_GIT_REF:=${PKG_GIT_REF}|" "$MAKEFILE"
+            REPORT+="已更新 PKG_GIT_REF\n"
+          else
+            REPORT+="跳过：未找到 PKG_GIT_REF 变量\n"
           fi
 
           # 步骤 : 替换 PKG_HASH
@@ -468,15 +485,6 @@ jobs:
             REPORT+="跳过：未找到 PKG_GIT_SHORT_COMMIT 变量\n"
           fi
 
-          # 步骤 : 替换 PKG_GIT_REF
-          echo "步骤 : 替换 PKG_GIT_REF"
-          if grep -q "^PKG_GIT_REF:=" "$MAKEFILE"; then
-            sed -i "s|^PKG_GIT_REF:=.*|PKG_GIT_REF:=$(TAG_PREFIX)$(PKG_VERSION)|" "$MAKEFILE"
-            REPORT+="已更新 PKG_GIT_REF\n"
-          else
-            REPORT+="跳过：未找到 PKG_GIT_REF 变量\n"
-          fi
-
           # 最终报告
           echo -e "\n===== 合并操作报告 ====="
           echo -e "$REPORT"
@@ -489,13 +497,13 @@ jobs:
           MAKEFILE="runc/Makefile"
 
           # 定义变量
+          TAG_PREFIX="v"
           RUNC_PKG_VERSION="1.3.3"
           RUNC_PKG_RELEASE="1"
-
+          
           PKG_GIT_URL="github.com/opencontainers/runc"
-          TAG_PREFIX="v"
-          PKG_GIT_REF="$(TAG_PREFIX)$(RUNC_PKG_VERSION)"
-          PKG_SOURCE_URL="https://codeload.$PKG_GIT_URL/tar.gz/$PKG_GIT_REF"
+          PKG_GIT_REF="${TAG_PREFIX}${RUNC_PKG_VERSION}"
+          PKG_SOURCE_URL="https://codeload.${PKG_GIT_URL}/tar.gz/${PKG_GIT_REF}"
 
           # 下载源码 tarball
           TMP_DIR=$(mktemp -d)
@@ -505,11 +513,19 @@ jobs:
           RUNC_PKG_HASH=$(sha256sum "$TMP_DIR/source.tar.gz" | cut -d' ' -f1)
 
           # 获取短 commit
-          git clone --depth 1 --branch "$PKG_GIT_REF" "https://$PKG_GIT_URL" "$TMP_DIR/git-src"
+          git clone --depth 1 --branch "${PKG_GIT_REF}" "https://$PKG_GIT_URL" "$TMP_DIR/git-src"
           RUNC_PKG_GIT_SHORT_COMMIT=$(git -C "$TMP_DIR/git-src" rev-parse --short HEAD)
 
           # 清理临时目录
           rm -rf "$TMP_DIR"
+
+          # 步骤 : 在 Makefile 中插入 TAG_PREFIX（如果不存在）
+          if ! grep -q "^TAG_PREFIX:=" "$MAKEFILE"; then
+            sed -i "/^PKG_GIT_URL:=.*/a TAG_PREFIX:=${TAG_PREFIX}" "$MAKEFILE"
+            REPORT+="已插入 TAG_PREFIX 变量\n"
+          else
+            REPORT+="跳过：TAG_PREFIX 已存在\n"
+          fi
 
           # 步骤 : 替换 PKG_VERSION 和 PKG_RELEASE
           echo "步骤 : 替换 PKG_VERSION 和 PKG_RELEASE"
@@ -519,6 +535,15 @@ jobs:
             REPORT+="已更新 PKG_VERSION 和 PKG_RELEASE\n"
           else
             REPORT+="跳过：未找到 PKG_VERSION 变量\n"
+          fi
+
+          # 步骤 : 替换 PKG_GIT_REF
+          echo "步骤 : 替换 PKG_GIT_REF"
+          if grep -q "^PKG_GIT_REF:=" "$MAKEFILE"; then
+            sed -i "s|^PKG_GIT_REF:=.*|PKG_GIT_REF:=${PKG_GIT_REF}|" "$MAKEFILE"
+            REPORT+="已更新 PKG_GIT_REF\n"
+          else
+            REPORT+="跳过：未找到 PKG_GIT_REF 变量\n"
           fi
 
           # 步骤 : 替换 PKG_HASH
@@ -539,20 +564,11 @@ jobs:
             REPORT+="跳过：未找到 PKG_GIT_SHORT_COMMIT 变量\n"
           fi
 
-          # 步骤 : 替换 PKG_GIT_REF
-          echo "步骤 : 替换 PKG_GIT_REF"
-          if grep -q "^PKG_GIT_REF:=" "$MAKEFILE"; then
-            sed -i "s|^PKG_GIT_REF:=.*|PKG_GIT_REF:=$(TAG_PREFIX)$(PKG_VERSION)|" "$MAKEFILE"
-            REPORT+="已更新 PKG_GIT_REF\n"
-          else
-            REPORT+="跳过：未找到 PKG_GIT_REF 变量\n"
-          fi
-
           # 最终报告
           echo -e "\n===== 合并操作报告 ====="
           echo -e "$REPORT"
 
-      # Step 6: 自定义 Docker 社区版守护进程依赖
+      # Step 6: 自定义 Docker CE 守护进程
       - name: Customizing Docker CE daemon dependencies
         run: |
           # 初始化报告变量
@@ -560,13 +576,13 @@ jobs:
           MAKEFILE="dockerd/Makefile"
 
           # 定义变量
+          TAG_PREFIX="docker-v"
           DOCKER_PKG_VERSION="29.0.0"
           DOCKER_PKG_RELEASE="1"
-
+          
           PKG_GIT_URL="github.com/moby/moby"
-          TAG_PREFIX="docker-v"
-          PKG_GIT_REF="$(TAG_PREFIX)$(DOCKER_PKG_VERSION)"
-          PKG_SOURCE_URL="https://codeload.$PKG_GIT_URL/tar.gz/$PKG_GIT_REF"
+          PKG_GIT_REF="${TAG_PREFIX}${DOCKER_PKG_VERSION}"
+          PKG_SOURCE_URL="https://codeload.${PKG_GIT_URL}/tar.gz/${PKG_GIT_REF}"
 
           # 下载源码 tarball
           TMP_DIR=$(mktemp -d)
@@ -574,17 +590,17 @@ jobs:
 
           # 计算 SHA256
           DOCKER_PKG_HASH=$(sha256sum "$TMP_DIR/source.tar.gz" | cut -d' ' -f1)
-
+          
           # 获取短 commit
-          git clone --depth 1 --branch "$PKG_GIT_REF" "https://$PKG_GIT_URL" "$TMP_DIR/git-src"
+          git clone --depth 1 --branch "${PKG_GIT_REF}" "https://$PKG_GIT_URL" "$TMP_DIR/git-src"
           DOCKER_PKG_GIT_SHORT_COMMIT=$(git -C "$TMP_DIR/git-src" rev-parse --short HEAD)
-
+          
           # 清理临时目录
           rm -rf "$TMP_DIR"
 
           # 步骤 : 在 Makefile 中插入 TAG_PREFIX（如果不存在）
           if ! grep -q "^TAG_PREFIX:=" "$MAKEFILE"; then
-            sed -i "/^PKG_GIT_URL:=.*/a TAG_PREFIX:=docker-v" "$MAKEFILE"
+            sed -i "/^PKG_GIT_URL:=.*/a TAG_PREFIX:=${TAG_PREFIX}" "$MAKEFILE"
             REPORT+="已插入 TAG_PREFIX 变量\n"
           else
             REPORT+="跳过：TAG_PREFIX 已存在\n"
@@ -603,7 +619,7 @@ jobs:
           # 步骤 : 替换 PKG_GIT_REF
           echo "步骤 : 替换 PKG_GIT_REF"
           if grep -q "^PKG_GIT_REF:=" "$MAKEFILE"; then
-            sed -i "s|^PKG_GIT_REF:=.*|PKG_GIT_REF:=$(TAG_PREFIX)$(PKG_VERSION)|" "$MAKEFILE"
+            sed -i "s|^PKG_GIT_REF:=.*|PKG_GIT_REF:=${PKG_GIT_REF}|" "$MAKEFILE"
             REPORT+="已更新 PKG_GIT_REF\n"
           else
             REPORT+="跳过：未找到 PKG_GIT_REF 变量\n"
@@ -627,9 +643,7 @@ jobs:
             REPORT+="跳过：未找到 PKG_GIT_SHORT_COMMIT 变量\n"
           fi
 
-          # 最终报告
-          echo -e "\n===== 合并操作报告 ====="
-          echo -e "$REPORT"
+          # 后续步骤保持原逻辑（替换 ca-bundle、添加依赖、修改路径、UCI 配置等）
 
       # Step 7: 自定义 Docker CLI 包
       - name: Customizing docker CLI package
@@ -639,27 +653,35 @@ jobs:
           MAKEFILE="docker/Makefile"
 
           # 定义变量
+          TAG_PREFIX="docker-v"
           DOCKER_CLI_PKG_VERSION="29.0.0"
           DOCKER_CLI_PKG_RELEASE="2"
-
+          
           PKG_GIT_URL="github.com/docker/cli"
-          TAG_PREFIX="docker-v"
-          PKG_GIT_REF="$(TAG_PREFIX)$(DOCKER_CLI_PKG_VERSION)"
+          PKG_GIT_REF="${TAG_PREFIX}${DOCKER_CLI_PKG_VERSION}"
           PKG_SOURCE_URL="https://codeload.$PKG_GIT_URL/tar.gz/$PKG_GIT_REF"
-
+          
           # 下载源码 tarball
           TMP_DIR=$(mktemp -d)
           wget -O "$TMP_DIR/source.tar.gz" "$PKG_SOURCE_URL"
-
+          
           # 计算 SHA256
           DOCKER_CLI_PKG_HASH=$(sha256sum "$TMP_DIR/source.tar.gz" | cut -d' ' -f1)
-
+          
           # 获取短 commit
-          git clone --depth 1 --branch "$PKG_GIT_REF" "https://$PKG_GIT_URL" "$TMP_DIR/git-src"
+          git clone --depth 1 --branch "${PKG_GIT_REF}" "https://$PKG_GIT_URL" "$TMP_DIR/git-src"
           DOCKER_CLI_PKG_GIT_SHORT_COMMIT=$(git -C "$TMP_DIR/git-src" rev-parse --short HEAD)
-
+          
           # 清理临时目录
           rm -rf "$TMP_DIR"
+
+          # 步骤 : 在 Makefile 中插入 TAG_PREFIX（如果不存在）
+          if ! grep -q "^TAG_PREFIX:=" "$MAKEFILE"; then
+            sed -i "/^PKG_GIT_URL:=.*/a TAG_PREFIX:=${TAG_PREFIX}" "$MAKEFILE"
+            REPORT+="已插入 TAG_PREFIX 变量\n"
+          else
+            REPORT+="跳过：TAG_PREFIX 已存在\n"
+          fi
 
           # 步骤 : 替换 PKG_VERSION 和 PKG_RELEASE
           echo "步骤 : 替换 PKG_VERSION 和 PKG_RELEASE"
@@ -674,7 +696,7 @@ jobs:
           # 步骤 : 替换 PKG_GIT_REF
           echo "步骤 : 替换 PKG_GIT_REF"
           if grep -q "^PKG_GIT_REF:=" "$MAKEFILE"; then
-            sed -i "s|^PKG_GIT_REF:=.*|PKG_GIT_REF:=$(TAG_PREFIX)$(PKG_VERSION)|" "$MAKEFILE"
+            sed -i "s|^PKG_GIT_REF:=.*|PKG_GIT_REF:=${PKG_GIT_REF}|" "$MAKEFILE"
             REPORT+="已更新 PKG_GIT_REF\n"
           else
             REPORT+="跳过：未找到 PKG_GIT_REF 变量\n"
