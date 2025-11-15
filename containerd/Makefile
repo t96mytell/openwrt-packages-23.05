@@ -70,5 +70,3 @@ define Package/containerd/install
 endef
 
 $(eval $(call BuildPackage,containerd))
-
-$(eval $(call BuildPackage,containerd))
