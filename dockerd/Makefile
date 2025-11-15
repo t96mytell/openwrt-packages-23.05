@@ -47,9 +47,9 @@ define Package/dockerd
     +kmod-veth \
     +tini \
     +uci-firewall \
-    +fuse-overlayfs \
-    +kmod-vxlan +kmod-macvlan +kmod-dummy +kmod-crypto-gcm +kmod-crypto-seqiv +kmod-crypto-ghash \
-    +kmod-ipsec +kmod-nf-nathelper +kmod-nf-nathelper-extra +btrfs-progs \
+	+fuse-overlayfs \
+	+kmod-vxlan +kmod-macvlan +kmod-dummy +kmod-crypto-gcm +kmod-crypto-seqiv +kmod-crypto-ghash \
+	+kmod-ipsec +kmod-nf-nathelper +kmod-nf-nathelper-extra +btrfs-progs \
 
     @!(mips||mips64||mipsel)
   USERID:=docker:docker
