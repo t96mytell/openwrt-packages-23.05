@@ -59,14 +59,11 @@ Build/Compile=$(call Build/Compile/Default)
 
 define Package/containerd/install
 	$(INSTALL_DIR) $(1)/usr/bin/
-
-	( \
-		for bin in ctr containerd containerd-stress containerd-shim containerd-shim-runc-v1 containerd-shim-runc-v2; do \
-			if [ -f "$(PKG_INSTALL_DIR)/bin/$$bin" ]; then \
-				$(INSTALL_BIN) $(PKG_INSTALL_DIR)/bin/$$bin $(1)/usr/bin/; \
-			fi; \
-		done \
-	)
+	for bin in ctr containerd containerd-stress containerd-shim containerd-shim-runc-v1 containerd-shim-runc-v2; do \
+		if [ -f "$(PKG_INSTALL_DIR)/bin/$$bin" ]; then \
+			$(INSTALL_BIN) $(PKG_INSTALL_DIR)/bin/$$bin $(1)/usr/bin/; \
+		fi; \
+	done
 endef
 
 $(eval $(call BuildPackage,containerd))
