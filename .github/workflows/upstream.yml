@@ -609,7 +609,7 @@ jobs:
             REPORT+="跳过：未找到 +ca-bundle 依赖项\n"
           fi
 
-          # 步骤 : 添加额外依赖项（在 @!(mips||mips64||mipsel) 前插入，保持三行结构）
+          # 步骤 : 添加额外依赖项（在 @!(mips||mips64||mipsel) 前插入
           echo "步骤 : 添加额外依赖项"
 
           if grep -q '+fuse-overlayfs' "$MAKEFILE" && \
