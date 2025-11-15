@@ -98,9 +98,9 @@ define Build/Prepare
 	$(Build/Prepare/Default)
 
 	# Verify dependencies are the vendored version
-	$(call EnsureVendoredVersion,../../packages/uti../../packages/uti../../packages/uti../../packages/uti../../packages/utils/containerd/Makefile,containerd.installer)
-	$(call EnsureVendoredVersion,../../packages/uti../../packages/uti../../packages/uti../../packages/uti../../packages/utils/runc/Makefile,runc.installer)
-	$(call EnsureVendoredVersion,../../packages/uti../../packages/uti../../packages/uti../../packages/uti../../packages/utils/tini/Makefile,tini.installer)
+	$(call EnsureVendoredVersion,../../packages/utils/containerd/Makefile,containerd.installer)
+	$(call EnsureVendoredVersion,../../packages/utils/runc/Makefile,runc.installer)
+	$(call EnsureVendoredVersion,../../packages/utils/tini/Makefile,tini.installer)
 
 	# Verify CLI is the same version
 	( \
