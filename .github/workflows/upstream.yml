@@ -465,6 +465,15 @@ jobs:
             REPORT+="跳过：未找到 PKG_GIT_SHORT_COMMIT 变量\n"
           fi
 
+          # 步骤 : 替换 containerd 安装文件为通配符匹配方式
+          echo "步骤 : 修正 INSTALL_BIN 安装路径"
+          if grep -q '$(PKG_INSTALL_DIR)/bin/{ctr,containerd,containerd-stress,containerd-shim,containerd-shim-runc-v1,containerd-shim-runc-v2}' "$MAKEFILE"; then
+            sed -i 's#$(PKG_INSTALL_DIR)/bin/{ctr,containerd,containerd-stress,containerd-shim,containerd-shim-runc-v1,containerd-shim-runc-v2}#$(PKG_INSTALL_DIR)/bin/*#' "$MAKEFILE"
+            REPORT+="已替换 INSTALL_BIN 为通配符方式\n"
+          else
+            REPORT+="跳过：未找到 INSTALL_BIN 匹配字段\n"
+          fi
+
           # 最终报告
           echo -e "\n===== 合并操作报告 ====="
           echo -e "$REPORT"
