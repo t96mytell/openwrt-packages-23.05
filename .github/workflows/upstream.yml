@@ -651,26 +651,44 @@ jobs:
           # 步骤 : 修改依赖检查路径
           echo "步骤 : 修改依赖检查路径"
           PATH_CHANGED=0
-          for DEP in containerd runc tini; do
-            OLD_PATH="../$DEP"
-            NEW_PATH="../../packages/utils/$DEP"
-            if grep -q "$OLD_PATH" "$MAKEFILE"; then
-              sed -i "s#${OLD_PATH}#${NEW_PATH}#g" "$MAKEFILE" || true
-              PATH_CHANGED=$((PATH_CHANGED+1))
-            else
-              REPORT+="跳过：未找到 $OLD_PATH 路径\n"
-            fi
-          done
-          if [ $PATH_CHANGED -gt 0 ]; then
-            if grep -q "EnsureVendoredVersion.*../../packages/utils" "$MAKEFILE"; then
-              REPORT+="已修改 ${PATH_CHANGED} 个依赖路径\n"
-            else
-              REPORT+="路径修改可能未生效\n"
-              grep "EnsureVendoredVersion" "$MAKEFILE" || true
-            fi
+
+          # 若三个依赖路径均已被修复，则整体跳过
+          if grep -q "../../packages/utils/containerd" "$MAKEFILE" \
+             && grep -q "../../packages/utils/runc" "$MAKEFILE" \
+             && grep -q "../../packages/utils/tini" "$MAKEFILE"; then
+            REPORT+="跳过：依赖路径已全部修复，无需修改\n"
+
           else
-            REPORT+="跳过：未找到需要修改的路径\n"
+            for DEP in containerd runc tini; do
+              OLD_PATH="../$DEP"
+              NEW_PATH="../../packages/utils/$DEP"
+
+              # 单个依赖若已修复则跳过
+              if grep -q "$NEW_PATH" "$MAKEFILE"; then
+                REPORT+="跳过：$DEP 路径已修复\n"
+                continue
+              fi
+
+              if grep -q "$OLD_PATH" "$MAKEFILE"; then
+                sed -i "s#${OLD_PATH}#${NEW_PATH}#g" "$MAKEFILE" || true
+                PATH_CHANGED=$((PATH_CHANGED+1))
+              else
+                REPORT+="跳过：未找到 $OLD_PATH 路径\n"
+              fi
+            done
+
+            if [ $PATH_CHANGED -gt 0 ]; then
+              if grep -q "../../packages/utils" "$MAKEFILE"; then
+                REPORT+="已修改 ${PATH_CHANGED} 个依赖路径\n"
+              else
+                REPORT+="路径修改可能未生效\n"
+                grep "EnsureVendoredVersion" "$MAKEFILE" || true
+              fi
+            else
+              REPORT+="未执行任何路径替换\n"
+            fi
           fi
+
 
           # 步骤 : 添加 UCI 默认配置（在安装段中插入）
           echo "步骤 : 添加 UCI 默认配置"
