@@ -608,24 +608,44 @@ jobs:
 
           # 步骤 : 添加额外依赖项（在 @!(mips||mips64||mipsel) 前插入）
           echo "步骤 : 添加额外依赖项"
-          if grep -q '@!(mips||mips64||mipsel)' "$MAKEFILE"; then
-            tmpfile=$(mktemp)
-            awk 'BEGIN { inserted=0 } /@!\(mips\|\|mips64\|\|mipsel\)/ && !inserted {
-              # 在锚点前插入这些依赖行（每行末尾保留反斜杠）
-              print "  +fuse-overlayfs \\"
-              print "  +kmod-vxlan +kmod-macvlan +kmod-dummy +kmod-crypto-gcm +kmod-crypto-seqiv +kmod-crypto-ghash \\"
-              print "  +kmod-ipsec +kmod-nf-nathelper +kmod-nf-nathelper-extra +btrfs-progs \\"
-              inserted=1
-            } { print }' "$MAKEFILE" > "$tmpfile" && mv "$tmpfile" "$MAKEFILE"
-            if grep -q '+fuse-overlayfs' "$MAKEFILE" && grep -q '+btrfs-progs' "$MAKEFILE"; then
-              REPORT+="已添加额外依赖项 (fuse-overlayfs, btrfs-progs 等)\n"
-            else
-              REPORT+="添加额外依赖项失败：部分依赖项添加失败\n"
-              echo "当前 DEPENDS 内容:"
-              grep -A 15 "DEPENDS:=" "$MAKEFILE" || true
-            fi
+
+          # 如果依赖项已经存在，则完全跳过
+          if grep -q '+fuse-overlayfs' "$MAKEFILE" && \
+             grep -q '+kmod-macvlan' "$MAKEFILE" && \
+             grep -q '+btrfs-progs' "$MAKEFILE"; then
+
+            REPORT+="跳过：依赖项已存在，无需重复插入\n"
+
           else
-            REPORT+="跳过：未找到依赖项锚点 @!(mips||mips64||mipsel)\n"
+
+            # 检查锚点是否存在
+            if grep -q '@!\(mips\|\|mips64\|\|mipsel\)' "$MAKEFILE"; then
+              tmpfile=$(mktemp)
+
+              awk 'BEGIN { inserted=0 }
+                /@!\(mips\|\|mips64\|\|mipsel\)/ && !inserted {
+                  print "  +fuse-overlayfs \\";
+                  print "  +kmod-vxlan +kmod-macvlan +kmod-dummy +kmod-crypto-gcm +kmod-crypto-seqiv +kmod-crypto-ghash \\";
+                  print "  +kmod-ipsec +kmod-nf-nathelper +kmod-nf-nathelper-extra +btrfs-progs \\";
+                  inserted=1
+                }
+                { print }
+              ' "$MAKEFILE" > "$tmpfile" && mv "$tmpfile" "$MAKEFILE"
+
+              # 插入后验证
+              if grep -q '+fuse-overlayfs' "$MAKEFILE" && \
+                 grep -q '+kmod-macvlan' "$MAKEFILE" && \
+                 grep -q '+btrfs-progs' "$MAKEFILE"; then
+
+                REPORT+="已添加额外依赖项 (fuse-overlayfs、macvlan、btrfs-progs 等)\n"
+
+              else
+                REPORT+="添加额外依赖项失败：插入后 Makefile 中未找到全部依赖项\n"
+              fi
+
+            else
+              REPORT+="跳过：未找到依赖项锚点 @!(mips||mips64||mipsel)\n"
+            fi
           fi
 
           # 步骤 : 修改依赖检查路径
