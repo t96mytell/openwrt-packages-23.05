@@ -353,8 +353,8 @@ jobs:
             [ -f "$file" ] || continue
             if grep -q 'include \(\.\./\)\+luci\.mk' "$file"; then
               echo "修复 $file 中的 luci.mk 引用..."
-              sed -i 's|include \(\.\./\)\+luci\.mk|include $(TOPDIR)/feeds/luci/luci.mkk|g' "$file"
-              if grep -q 'include $(TOPDIR)/feeds/luci/luci.mkk' "$file"; then
+              sed -i 's|include \(\.\./\)\+luci\.mk|include $(TOPDIR)/feeds/luci/luci.mk|g' "$file"
+              if grep -q 'include $(TOPDIR)/feeds/luci/luci.mk' "$file"; then
                 ((modified_count++))
                 echo "  → 修改成功"
               else
