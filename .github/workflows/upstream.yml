@@ -246,7 +246,7 @@ jobs:
 
           # 同步immortalwrt/packages
           sync_repo "github.com/immortalwrt/packages.git" "master" "immortalwrt-packages" \
-            "lang/lua-neturl:lua-neturl"
+            "lang/lua/lua-neturl:lua-neturl"
 
           # 同步immortalwrt/luci
           sync_repo "github.com/immortalwrt/luci.git" "master" "immortalwrt-luci" \
