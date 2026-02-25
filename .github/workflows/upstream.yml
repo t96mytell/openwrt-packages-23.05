@@ -253,7 +253,6 @@ jobs:
             "applications/luci-app-dockerman:luci-app-dockerman,\
             applications/luci-app-keepalived:luci-app-keepalived,\
             applications/luci-app-openvpn-server:luci-app-openvpn-server,\
-            applications/luci-app-openvpn:luci-app-openvpn,\
             applications/luci-app-pppoe-relay:luci-app-pppoe-relay,\
             applications/luci-app-pppoe-server:luci-app-pppoe-server"
 
@@ -265,6 +264,7 @@ jobs:
           sync_repo "github.com/kenzok8/small-package.git" "main" "small-package" \
             "luci-app-adguardhome:luci-app-adguardhome,\
             luci-app-ipsec-server:luci-app-ipsec-server,\
+            luci-app-openvpn-client:luci-app-openvpn-client,\
             luci-app-pptp-server:luci-app-pptp-server,\
             adguardhome:adguardhome,\
             cgroupfs-mount:cgroupfs-mount"
