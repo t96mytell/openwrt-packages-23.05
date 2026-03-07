@@ -256,19 +256,6 @@ jobs:
             applications/luci-app-pppoe-relay:luci-app-pppoe-relay,\
             applications/luci-app-pppoe-server:luci-app-pppoe-server"
 
-          # 同步immortalwrt/luci > luci-app-nft-qos (按Commit)
-          sync_repo "github.com/immortalwrt/luci.git" "27823f5" "immortalwrt-luci-app-nft-qos" \
-            "applications/luci-app-nft-qos:luci-app-nft-qos"
-          
-          # 同步kenzok8/small-package
-          sync_repo "github.com/kenzok8/small-package.git" "main" "small-package" \
-            "luci-app-adguardhome:luci-app-adguardhome,\
-            luci-app-ipsec-server:luci-app-ipsec-server,\
-            luci-app-openvpn-client:luci-app-openvpn-client,\
-            luci-app-pptp-server:luci-app-pptp-server,\
-            adguardhome:adguardhome,\
-            cgroupfs-mount:cgroupfs-mount"
-
           # 同步kenzok8/small
           sync_repo "github.com/kenzok8/small.git" "master" "small" \
             "brook:brook,\
