@@ -314,8 +314,8 @@ jobs:
           sync_repo "github.com/Openwrt-Passwall/openwrt-passwall2.git" "main" "openwrt-passwall2" \
             "luci-app-passwall2:luci-app-passwall2"
 
-          # 同步kiddin9/kwrt-packages
-          sync_repo "github.com/kiddin9/kwrt-packages.git" "main" "kwrt-packages" \
+          # 同步kiddin9/op-packages
+          sync_repo "github.com/kiddin9/op-packages.git" "main" "op-packages" \
             "luci-app-easymesh:luci-app-easymesh,\
             luci-app-einat:luci-app-einat,\
             openwrt-einat-ebpf:openwrt-einat-ebpf"
