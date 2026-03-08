@@ -265,7 +265,6 @@ jobs:
             gn:gn,\
             hysteria:hysteria,\
             ipt2socks:ipt2socks,\
-            luci-app-bypass:luci-app-bypass,\
             luci-app-fchomo:luci-app-fchomo,\
             luci-app-homeproxy:luci-app-homeproxy,\
             luci-app-mosdns:luci-app-mosdns,\
