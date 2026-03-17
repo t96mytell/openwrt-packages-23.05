@@ -14,6 +14,7 @@ PKG_LICENSE_FILES:=LICENSE
 PKG_USE_MIPS16:=0
 PKG_BUILD_FLAGS:=no-mips16
 PKG_BUILD_PARALLEL:=1
+PKG_FIXUP:=autoreconf
 PKG_INSTALL:=1
 
 include $(INCLUDE_DIR)/package.mk
@@ -47,9 +48,9 @@ define Build/Prepare
 	# Patch configure: use pcre2 instead of pcre1 (OpenWrt 24.10 only provides pcre2)
 	sed -i \
 		-e 's/pcre-config/pcre2-config/g' \
+		-e 's/PCRE_CONFIG --libs/PCRE_CONFIG --libs8/g' \
 		-e 's/pcre_exec/pcre2_match_8/g' \
 		-e '/for ac_lib in/{s/ pcre;/ pcre2-8;/}' \
-		-e 's/LIBPCRE=-lpcre$$/LIBPCRE=-lpcre2-8/' \
 		-e 's/pcre\.h/pcre2.h/g' \
 		-e 's/pcre\/pcre\.h/pcre2\/pcre2.h/g' \
 		$(PKG_BUILD_DIR)/configure
@@ -59,10 +60,12 @@ CONFIGURE_ARGS += \
 	--disable-documentation \
 	--disable-ssp \
 	--disable-assert \
-	--enable-system-shared-lib
+	--enable-system-shared-lib \
+	--with-pcre=$(STAGING_DIR)/usr
 
 TARGET_CFLAGS += -flto
 TARGET_CFLAGS += -Wno-error=use-after-free
+TARGET_CPPFLAGS += -DPCRE2_CODE_UNIT_WIDTH=8
 TARGET_LDFLAGS += -Wl,--gc-sections,--as-needed
 
 $(foreach component,$(SHADOWSOCKSR_COMPONENTS), \
