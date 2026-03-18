@@ -6,7 +6,7 @@ PKG_RELEASE:=1
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=https://codeload.github.com/kenzok8/shadowsocksr-libev/tar.gz/v$(PKG_VERSION)?
-PKG_HASH:=2dd06d4591ac46f1afd26bf9054488193143d31121e31ae914f67535a8e2cd22
+PKG_HASH:=142d62bf4a1937c96c3f0970eef7391ce8df4efb830e295338a594ddf6493630
 
 PKG_LICENSE:=GPL-3.0
 PKG_LICENSE_FILES:=LICENSE
@@ -25,7 +25,7 @@ define Package/shadowsocksr-libev/Default
     CATEGORY:=Network
     SUBMENU:=Web Servers/Proxies
     TITLE:=shadowsocksr-libev ssr-$(1)
-    URL:=https://github.com/kenzok8/shadowsocksr-libev
+  URL:=https://github.com/kenzok8/shadowsocksr-libev
     DEPENDS:=+libev +libsodium +libopenssl +libpthread +libpcre2 +libudns +zlib +libopenssl-legacy
   endef
 
