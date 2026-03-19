@@ -423,6 +423,17 @@ jobs:
           git clone --depth 1 --branch "docker-v${DOCKER_PKG_VERSION}" "https://$PKG_GIT_URL" "$TMP_DIR/git-src"
           DOCKER_PKG_GIT_SHORT_COMMIT=$(git -C "$TMP_DIR/git-src" rev-parse --short HEAD)
 
+          # 步骤 : 自动解析 containerd 版本
+          CONTAINERD_VERSION=$(awk '/containerd\/containerd\/v2/ {print $2}' "$TMP_DIR/git-src/go.mod" | head -n1 | tr -d '\r' | sed 's/^v//')
+
+          if [ -n "$CONTAINERD_VERSION" ]; then
+            REPORT+="自动解析 containerd 版本: $CONTAINERD_VERSION\n"
+            echo "CONTAINERD_VERSION=$CONTAINERD_VERSION" >> $GITHUB_ENV
+          else
+            echo "错误: 无法解析 containerd 版本"
+            exit 1
+          fi
+
           # 清理临时目录
           rm -rf "$TMP_DIR"
 
@@ -666,7 +677,7 @@ jobs:
           MAKEFILE="containerd/Makefile"
 
           # 定义变量
-          CONTAINERD_PKG_VERSION="2.2.1"
+          CONTAINERD_PKG_VERSION="${CONTAINERD_VERSION}"
           CONTAINERD_PKG_RELEASE="1"
           PKG_GIT_URL="github.com/containerd/containerd"
           PKG_GIT_REF="v$CONTAINERD_PKG_VERSION"
