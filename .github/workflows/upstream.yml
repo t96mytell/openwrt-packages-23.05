@@ -406,7 +406,7 @@ jobs:
           MAKEFILE="containerd/Makefile"
 
           # 定义变量
-          CONTAINERD_PKG_VERSION="2.2.1"
+          CONTAINERD_PKG_VERSION="2.2.2"
           CONTAINERD_PKG_RELEASE="1"
           PKG_GIT_URL="github.com/containerd/containerd"
           PKG_GIT_REF="v$CONTAINERD_PKG_VERSION"
@@ -475,7 +475,7 @@ jobs:
           MAKEFILE="runc/Makefile"
 
           # 定义变量
-          RUNC_PKG_VERSION="1.3.4"
+          RUNC_PKG_VERSION="1.3.5"
           RUNC_PKG_RELEASE="1"
           PKG_GIT_URL="github.com/opencontainers/runc"
           PKG_GIT_REF="v$RUNC_PKG_VERSION"
