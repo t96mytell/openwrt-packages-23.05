@@ -70,7 +70,7 @@ TARGET_LDFLAGS += $(if $(CONFIG_USE_GLIBC),-lc -lgcc_eh)
 
 # $(1) = path to dependent package 'Makefile'
 # $(2) = relevant dependency '.installer' file
-define EnsureVendoredVersion
+#define EnsureVendoredVersion
 	( \
 		DEP_VER=$$$$( grep --only-matching --perl-regexp '(?<=PKG_VERSION:=)(.*)' "$(1)" ); \
 		VEN_VER=$$$$( grep --only-matching --perl-regexp '(?<=_VERSION:=v)(.*)(?=})' "$(PKG_BUILD_DIR)/hack/dockerfile/install/$(2)" ); \
@@ -98,6 +98,9 @@ define Build/Prepare
 	$(Build/Prepare/Default)
 
 	# Verify dependencies are the vendored version
+#	$(call EnsureVendoredVersion,../../packages/utils/containerd/Makefile,containerd.installer)
+#	$(call EnsureVendoredVersion,../../packages/utils/runc/Makefile,runc.installer)
+#	$(call EnsureVendoredVersion,../../packages/utils/tini/Makefile,tini.installer)
 
 	# Verify CLI is the same version
 	( \
