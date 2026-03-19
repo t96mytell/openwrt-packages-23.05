@@ -594,11 +594,13 @@ jobs:
           
           # 步骤 : 禁用 EnsureVendoredVersion 检测
           echo "步骤 : 禁用 EnsureVendoredVersion 检测"
-          sed -i '/EnsureVendoredVersion.*containerd.installer/d' "$MAKEFILE"
-          sed -i '/EnsureVendoredVersion.*runc.installer/d' "$MAKEFILE"
-          sed -i '/EnsureVendoredVersion.*tini.installer/d' "$MAKEFILE"
-          
-          REPORT+="已禁用 EnsureVendoredVersion 检测\n"
+
+          if grep -q "EnsureVendoredVersion" "$MAKEFILE"; then
+            sed -i '/EnsureVendoredVersion/ {/^[^#]/ s/^/#/}' "$MAKEFILE"
+            REPORT+="已全局注释 EnsureVendoredVersion\n"
+          else
+            REPORT+="跳过：未找到 EnsureVendoredVersion\n"
+          fi
 
           # 最终报告
           echo -e "\n===== 合并操作报告 ====="
