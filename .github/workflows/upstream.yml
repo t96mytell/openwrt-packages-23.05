@@ -416,20 +416,6 @@ jobs:
           TMP_DIR=$(mktemp -d)
           wget -O "$TMP_DIR/source.tar.gz" "$PKG_SOURCE_URL"
 
-          # 步骤 : 自动解析 containerd 版本
-          echo "步骤 : 自动解析 containerd 版本"
-
-          CONTAINERD_VERSION=$(awk '/containerd\/containerd\/v2/ {print $2}' "$TMP_DIR/git-src/go.mod" | head -n1 | sed 's/^v//')
-
-          if [ -n "$CONTAINERD_VERSION" ]; then
-            REPORT+="自动解析 containerd 版本: $CONTAINERD_VERSION\n"
-            echo "containerd version: $CONTAINERD_VERSION"
-            echo "CONTAINERD_VERSION=$CONTAINERD_VERSION" >> $GITHUB_ENV
-          else
-            echo "错误: 无法解析 containerd 版本"
-            exit 1
-          fi
-
           # 计算 SHA256
           DOCKER_PKG_HASH=$(sha256sum "$TMP_DIR/source.tar.gz" | cut -d' ' -f1)
 
