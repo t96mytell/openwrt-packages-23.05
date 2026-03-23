@@ -237,7 +237,7 @@ jobs:
 
           # 同步lede/luci
           sync_repo "github.com/coolsnowwolf/luci.git" "master" "lede-luci" \
-            "applications/luci-app-uugamebooster:luci-app-uugamebooster"
+            ""
 
           # 同步immortalwr主仓库包
           sync_repo "github.com/immortalwrt/immortalwrt.git" "master" "immortalwrt" \
@@ -298,11 +298,12 @@ jobs:
 
           # 同步kenzok8/jell
           sync_repo "github.com/kenzok8/jell.git" "main" "jell" \
-            "luci-app-easymesh:luci-app-easymesh,\
-            luci-app-adguardhome:luci-app-adguardhome,\
+            "luci-app-adguardhome:luci-app-adguardhome,\
             adguardhome:adguardhome,\
             luci-app-einat:luci-app-einat,\
-            openwrt-einat-ebpf:openwrt-einat-ebpf"
+            openwrt-einat-ebpf:openwrt-einat-ebpf,\
+            luci-app-easymesh:luci-app-easymesh,\
+            luci-app-uugamebooster:luci-app-uugamebooster"
 
           # 同步fw876/helloworld
           sync_repo "github.com/fw876/helloworld.git" "master" "helloworld" \
