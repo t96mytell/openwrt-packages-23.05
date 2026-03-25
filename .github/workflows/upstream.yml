@@ -267,13 +267,11 @@ jobs:
             ipt2socks:ipt2socks,\
             luci-app-fchomo:luci-app-fchomo,\
             luci-app-homeproxy:luci-app-homeproxy,\
-            luci-app-mosdns:luci-app-mosdns,\
             luci-app-nikki:luci-app-nikki,\
             luci-app-openclash:luci-app-openclash,\
             luci-app-ssr-plus:luci-app-ssr-plus,\
             microsocks:microsocks,\
             mihomo:mihomo,\
-            mosdns:mosdns,\
             naiveproxy:naiveproxy,\
             nikki:nikki,\
             pdnsd-alt:pdnsd-alt,\
@@ -303,6 +301,8 @@ jobs:
             luci-app-einat:luci-app-einat,\
             openwrt-einat-ebpf:openwrt-einat-ebpf,\
             luci-app-easymesh:luci-app-easymesh,\
+            luci-app-mosdns:luci-app-mosdns,\
+            mosdns:mosdns,\
             luci-app-uugamebooster:luci-app-uugamebooster"
 
           # 同步fw876/helloworld
