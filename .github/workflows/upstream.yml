@@ -300,6 +300,7 @@ jobs:
             adguardhome:adguardhome,\
             luci-app-einat:luci-app-einat,\
             openwrt-einat-ebpf:openwrt-einat-ebpf,\
+            luci-app-easymesh:luci-app-easymesh,\
             luci-app-mosdns:luci-app-mosdns,\
             mosdns:mosdns,\
             luci-app-uugamebooster:luci-app-uugamebooster"
