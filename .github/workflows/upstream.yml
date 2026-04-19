@@ -9,6 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+      TZ: Asia/Shanghai
       TARGET_REPO: t96mytell/openwrt-packages-23.05
       TARGET_BRANCH: main
     
