@@ -191,7 +191,7 @@ jobs:
           }
           
           # 同步FUjr/QModem
-          sync_repo "github.com/FUjr/QModem.git" "main" "QModem" \
+          sync_repo "github.com/FUjr/QModem.git" "main" "QModem-tmp" \
             ":QModem"
 
           # 同步openwrt/packages
