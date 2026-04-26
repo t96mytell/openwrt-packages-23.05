@@ -50,11 +50,11 @@ define Package/dockerd
     +kmod-nf-ipvs \
     +kmod-veth \
     +tini \
-    +uci-firewall
+    +uci-firewall \
 	+cgroupfs-mount \
 	+fuse-overlayfs \
 	+kmod-vxlan +kmod-macvlan +kmod-dummy +kmod-crypto-gcm +kmod-crypto-seqiv +kmod-crypto-ghash \
-	+kmod-ipsec +kmod-nf-nathelper +kmod-nf-nathelper-extra \
+	+kmod-ipsec +kmod-nf-nathelper +kmod-nf-nathelper-extra
   USERID:=docker:docker
   MENU:=1
 endef
