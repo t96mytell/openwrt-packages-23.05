@@ -275,8 +275,8 @@ jobs:
             xray-plugin:xray-plugin,\
             geoview:geoview"
 
-          # 同步kenzok8/small-package
-          sync_repo "github.com/kenzok8/small-package.git" "main" "tmp_small_package" \
+          # 同步kenzok8/jell
+          sync_repo "github.com/kenzok8/jell.git" "main" "tmp_jell" \
             "luci-app-adguardhome:luci-app-adguardhome,\
             adguardhome:adguardhome,\
             luci-app-einat:luci-app-einat,\
