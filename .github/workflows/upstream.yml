@@ -486,11 +486,12 @@ jobs:
               tmpfile=$(mktemp)
               awk '
                 /\+uci-firewall/ {
-                  print $0
+                  sub(/[ \t]*\\?[ \t]*$/, "", $0)
+                  print $0 " \\"
                   print "\t+cgroupfs-mount \\"
                   print "\t+fuse-overlayfs \\"
                   print "\t+kmod-vxlan +kmod-macvlan +kmod-dummy +kmod-crypto-gcm +kmod-crypto-seqiv +kmod-crypto-ghash \\"
-                  print "\t+kmod-ipsec +kmod-nf-nathelper +kmod-nf-nathelper-extra \\"
+                  print "\t+kmod-ipsec +kmod-nf-nathelper +kmod-nf-nathelper-extra"
                   next
                 }
                 { print }
