@@ -475,38 +475,34 @@ jobs:
             REPORT+="跳过：未找到 +ca-bundle 依赖项\n"
           fi
 
-          # 步骤 : 添加额外依赖项（在 @!(mips||mips64||mipsel) 前插入
+          # 步骤 : 添加额外依赖项
           echo "步骤 : 添加额外依赖项"
 
-          if grep -q '+fuse-overlayfs' "$MAKEFILE" && \
-             grep -q '+kmod-macvlan' "$MAKEFILE" && \
-             grep -q '+btrfs-progs' "$MAKEFILE"; then
-
-            REPORT+="跳过：依赖项已存在，无需重复插入\n"
-
+          if grep -q '+fuse-overlayfs' "$MAKEFILE"; then
+            REPORT+="跳过：依赖项已存在\n"
           else
-
-            if grep -q '@!\(mips\|\|mips64\|\|mipsel\)' "$MAKEFILE"; then
+            # 先确认锚点是否存在
+            if grep -q '+uci-firewall' "$MAKEFILE"; then
               tmpfile=$(mktemp)
-
               awk '
-                BEGIN { inserted=0 }
-                /@!\(mips\|\|mips64\|\|mipsel\)/ && !inserted {
-                  printf("\t+fuse-overlayfs \\\n")
-                  printf("\t+kmod-vxlan +kmod-macvlan +kmod-dummy +kmod-crypto-gcm +kmod-crypto-seqiv +kmod-crypto-ghash \\\n")
-                  printf("\t+kmod-ipsec +kmod-nf-nathelper +kmod-nf-nathelper-extra +btrfs-progs \\\n")
-                  inserted=1
+                /\+uci-firewall/ {
+                  print $0
+                  print "\t+cgroupfs-mount \\"
+                  print "\t+fuse-overlayfs \\"
+                  print "\t+kmod-vxlan +kmod-macvlan +kmod-dummy +kmod-crypto-gcm +kmod-crypto-seqiv +kmod-crypto-ghash \\"
+                  print "\t+kmod-ipsec +kmod-nf-nathelper +kmod-nf-nathelper-extra \\"
+                  next
                 }
                 { print }
               ' "$MAKEFILE" > "$tmpfile" && mv "$tmpfile" "$MAKEFILE"
-
+              
               if grep -q '+fuse-overlayfs' "$MAKEFILE"; then
                 REPORT+="已添加额外依赖项\n"
               else
-                REPORT+="添加额外依赖项失败：插入后 Makefile 中未找到全部依赖项\n"
+                REPORT+="添加额外依赖项失败：插入后未找到新增依赖\n"
               fi
             else
-              REPORT+="跳过：未找到依赖项锚点 @!(mips||mips64||mipsel)\n"
+              REPORT+="跳过：未找到依赖项锚点 +uci-firewall\n"
             fi
           fi
 
