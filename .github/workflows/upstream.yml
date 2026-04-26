@@ -191,11 +191,11 @@ jobs:
           }
           
           # 同步FUjr/QModem
-          sync_repo "github.com/FUjr/QModem.git" "main" "QModem-tmp" \
+          sync_repo "github.com/FUjr/QModem.git" "main" "tmp_QModem" \
             ":QModem"
 
           # 同步openwrt/packages
-          sync_repo "github.com/openwrt/packages.git" "master" "openwrt-packages" \
+          sync_repo "github.com/openwrt/packages.git" "master" "tmp_openwrt_packages" \
             "net/keepalived:keepalived,\
             utils/runc:runc,\
             utils/tini:tini,\
@@ -204,33 +204,33 @@ jobs:
             utils/dockerd:dockerd"
 
           # 同步openwrt/luci
-          sync_repo "github.com/openwrt/luci.git" "master" "openwrt-luci" \
+          sync_repo "github.com/openwrt/luci.git" "master" "tmp_openwrt_luci" \
             ""
 
           # 同步lede主仓库包
-          sync_repo "github.com/coolsnowwolf/lede.git" "master" "lede" \
+          sync_repo "github.com/coolsnowwolf/lede.git" "master" "tmp_lede" \
             ""
 
           # 同步lede/packages
-          sync_repo "github.com/coolsnowwolf/packages.git" "master" "lede-packages" \
+          sync_repo "github.com/coolsnowwolf/packages.git" "master" "tmp_lede_packages" \
             "net/uugamebooster:uugamebooster,\
             net/nft-qos:nft-qos"
 
           # 同步lede/luci
-          sync_repo "github.com/coolsnowwolf/luci.git" "master" "lede-luci" \
+          sync_repo "github.com/coolsnowwolf/luci.git" "master" "tmp_lede_luci" \
             ""
 
           # 同步immortalwr主仓库包
-          sync_repo "github.com/immortalwrt/immortalwrt.git" "master" "immortalwrt" \
+          sync_repo "github.com/immortalwrt/immortalwrt.git" "master" "tmp_immortalwrt" \
             "package/network/utils/fullconenat:fullconenat,\
             package/network/utils/fullconenat-nft:fullconenat-nft"
 
           # 同步immortalwrt/packages
-          sync_repo "github.com/immortalwrt/packages.git" "master" "immortalwrt-packages" \
+          sync_repo "github.com/immortalwrt/packages.git" "master" "tmp_immortalwrt_packages" \
             "lang/lua/lua-neturl:lua-neturl"
 
           # 同步immortalwrt/luci
-          sync_repo "github.com/immortalwrt/luci.git" "master" "immortalwrt-luci" \
+          sync_repo "github.com/immortalwrt/luci.git" "master" "tmp_immortalwrt_luci" \
             "applications/luci-app-dockerman:luci-app-dockerman,\
             applications/luci-app-keepalived:luci-app-keepalived,\
             applications/luci-app-openvpn-server:luci-app-openvpn-server,\
@@ -238,7 +238,7 @@ jobs:
             applications/luci-app-pppoe-server:luci-app-pppoe-server"
 
           # 同步kenzok8/small
-          sync_repo "github.com/kenzok8/small.git" "master" "small" \
+          sync_repo "github.com/kenzok8/small.git" "master" "tmp_small" \
             "brook:brook,\
             chinadns-ng:chinadns-ng,\
             dns2socks:dns2socks,\
@@ -275,8 +275,8 @@ jobs:
             xray-plugin:xray-plugin,\
             geoview:geoview"
 
-          # 同步kenzok8/jell
-          sync_repo "github.com/kenzok8/jell.git" "main" "jell" \
+          # 同步kenzok8/small-package
+          sync_repo "github.com/kenzok8/small-package.git" "main" "tmp_small_package" \
             "luci-app-adguardhome:luci-app-adguardhome,\
             adguardhome:adguardhome,\
             luci-app-einat:luci-app-einat,\
@@ -287,21 +287,21 @@ jobs:
             luci-app-uugamebooster:luci-app-uugamebooster"
 
           # 同步fw876/helloworld
-          sync_repo "github.com/fw876/helloworld.git" "master" "helloworld" \
+          sync_repo "github.com/fw876/helloworld.git" "master" "tmp_helloworld" \
             "shadowsocks-libev:shadowsocks-libev,\
             dns2socks-rust:dns2socks-rust,\
             trojan:trojan"
 
           # 同步Openwrt-Passwall/openwrt-passwall-packages
-          sync_repo "github.com/Openwrt-Passwall/openwrt-passwall-packages.git" "main" "openwrt-passwall-packages" \
+          sync_repo "github.com/Openwrt-Passwall/openwrt-passwall-packages.git" "main" "tmp_openwrt-passwall_packages" \
             "trojan-plus:trojan-plus"
 
           # 同步Openwrt-Passwall/openwrt-passwall
-          sync_repo "github.com/Openwrt-Passwall/openwrt-passwall.git" "main" "openwrt-passwall" \
+          sync_repo "github.com/Openwrt-Passwall/openwrt-passwall.git" "main" "tmp_openwrt_passwall" \
             "luci-app-passwall:luci-app-passwall"
 
           # 同步Openwrt-Passwall/openwrt-passwall2
-          sync_repo "github.com/Openwrt-Passwall/openwrt-passwall2.git" "main" "openwrt-passwall2" \
+          sync_repo "github.com/Openwrt-Passwall/openwrt-passwall2.git" "main" "tmp_openwrt_passwall2" \
             "luci-app-passwall2:luci-app-passwall2"
 
           
