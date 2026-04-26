@@ -391,7 +391,7 @@ jobs:
           MAKEFILE="dockerd/Makefile"
 
           # 定义变量
-          DOCKER_PKG_VERSION="29.4.0"
+          DOCKER_PKG_VERSION="29.4.1"
           DOCKER_PKG_RELEASE="1"
           PKG_GIT_URL="github.com/moby/moby"
           PKG_GIT_REF="docker-v${DOCKER_PKG_VERSION}"
