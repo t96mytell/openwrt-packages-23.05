@@ -227,7 +227,8 @@ jobs:
 
           # 同步immortalwrt/packages
           sync_repo "github.com/immortalwrt/packages.git" "master" "tmp_immortalwrt_packages" \
-            "lang/lua/lua-neturl:lua-neturl"
+            "lang/lua/lua-neturl:lua-neturl,\
+             net/rtp2httpd:rtp2httpd"
 
           # 同步immortalwrt/luci
           sync_repo "github.com/immortalwrt/luci.git" "master" "tmp_immortalwrt_luci" \
@@ -235,7 +236,8 @@ jobs:
             applications/luci-app-keepalived:luci-app-keepalived,\
             applications/luci-app-openvpn-server:luci-app-openvpn-server,\
             applications/luci-app-pppoe-relay:luci-app-pppoe-relay,\
-            applications/luci-app-pppoe-server:luci-app-pppoe-server"
+            applications/luci-app-pppoe-server:luci-app-pppoe-server,\
+            applications/luci-app-rtp2httpd:luci-app-rtp2httpd"
 
           # 同步kenzok8/small
           sync_repo "github.com/kenzok8/small.git" "master" "tmp_small" \
