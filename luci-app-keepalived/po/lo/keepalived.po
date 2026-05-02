@@ -1,15 +1,11 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-04-24 15:14+0000\n"
-"Last-Translator: smallcms <smallcms@gmail.com>\n"
-"Language-Team: Belarusian <https://hosted.weblate.org/projects/openwrt/"
-"luciapplicationskeepalived/be/>\n"
-"Language: be\n"
+"Last-Translator: Automatically generated\n"
+"Language-Team: none\n"
+"Language: lo\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
-"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
-"X-Generator: Weblate 5.17.1-dev\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
 
 #: applications/luci-app-keepalived/htdocs/luci-static/resources/view/keepalived/vrrp_instance.js:205
 msgid "2"
@@ -230,7 +226,7 @@ msgstr ""
 
 #: applications/luci-app-keepalived/htdocs/luci-static/resources/view/keepalived/servers.js:30
 msgid "Enable"
-msgstr "Уключыць"
+msgstr ""
 
 #: applications/luci-app-keepalived/htdocs/luci-static/resources/view/keepalived/peers.js:47
 msgid "Enable Sync"
@@ -239,7 +235,7 @@ msgstr ""
 #: applications/luci-app-keepalived/htdocs/luci-static/resources/view/keepalived/globals.js:15
 #: applications/luci-app-keepalived/htdocs/luci-static/resources/view/keepalived/servers.js:137
 msgid "Enabled"
-msgstr "Уключана"
+msgstr ""
 
 #: applications/luci-app-keepalived/htdocs/luci-static/resources/view/keepalived/vrrp_instance.js:246
 msgid "Exclude Virtual IP Address"
@@ -292,7 +288,7 @@ msgstr ""
 
 #: applications/luci-app-keepalived/htdocs/luci-static/resources/view/keepalived/route.js:45
 msgid "Gateway"
-msgstr "Шлюз"
+msgstr ""
 
 #: applications/luci-app-keepalived/htdocs/luci-static/resources/view/keepalived/route.js:46
 msgid "Gateway to use for the Route"
@@ -720,7 +716,7 @@ msgstr ""
 
 #: applications/luci-app-keepalived/htdocs/luci-static/resources/view/keepalived/route.js:18
 msgid "Routes"
-msgstr "Маршруты"
+msgstr ""
 
 #: applications/luci-app-keepalived/htdocs/luci-static/resources/view/keepalived/vrrp_instance.js:258
 msgid "Routes add|del when changing to MASTER, to BACKUP"
