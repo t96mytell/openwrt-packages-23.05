@@ -277,7 +277,7 @@ jobs:
             geoview:geoview"
 
           # 同步kenzok8/small-package
-          sync_repo "github.com/kenzok8/jell.git" "main" "tmp_small-package" \
+          sync_repo "github.com/kenzok8/small-package.git" "main" "tmp_small-package" \
             "luci-app-adguardhome:luci-app-adguardhome,\
             adguardhome:adguardhome,\
             luci-app-easymesh:luci-app-easymesh,\
