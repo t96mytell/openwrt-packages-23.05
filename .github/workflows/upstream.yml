@@ -248,10 +248,7 @@ jobs:
             hysteria:hysteria,\
             ipt2socks:ipt2socks,\
             luci-app-fchomo:luci-app-fchomo,\
-            luci-app-homeproxy:luci-app-homeproxy,\
             luci-app-nikki:luci-app-nikki,\
-            luci-app-openclash:luci-app-openclash,\
-            luci-app-ssr-plus:luci-app-ssr-plus,\
             microsocks:microsocks,\
             mihomo:mihomo,\
             naiveproxy:naiveproxy,\
@@ -288,7 +285,16 @@ jobs:
           sync_repo "github.com/fw876/helloworld.git" "master" "tmp_helloworld" \
             "shadowsocks-libev:shadowsocks-libev,\
             dns2socks-rust:dns2socks-rust,\
-            trojan:trojan"
+            trojan:trojan,\
+            luci-app-ssr-plus:luci-app-ssr-plus"
+            
+          # 同步immortalwrt/homeproxy
+          sync_repo "github.com/immortalwrt/homeproxy.git" "master" "tmp_homeproxy" \
+           ".:luci-app-homeproxy"
+           
+          # 同步vernesong/OpenClash
+          sync_repo "github.com/vernesong/OpenClash.git" "master" "tmp_OpenClash" \
+           "luci-app-openclash:luci-app-openclash"
 
           # 同步Openwrt-Passwall/openwrt-passwall-packages
           sync_repo "github.com/Openwrt-Passwall/openwrt-passwall-packages.git" "main" "tmp_openwrt-passwall-packages" \
