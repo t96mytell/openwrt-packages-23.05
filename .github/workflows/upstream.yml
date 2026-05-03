@@ -263,6 +263,7 @@ jobs:
             ssocks:ssocks,\
             tcping:tcping,\
             trojan-go:trojan-go,\
+            trojan:trojan,\
             tuic-client:tuic-client,\
             v2dat:v2dat,\
             v2ray-core:v2ray-core,\
@@ -282,10 +283,9 @@ jobs:
             mosdns:mosdns"
 
           # 同步fw876/helloworld
-          sync_repo "github.com/fw876/helloworld.git" "master" "tmp_helloworld" \
+          sync_repo "github.com/fw876/helloworld.git" "dev" "tmp_helloworld" \
             "shadowsocks-libev:shadowsocks-libev,\
             dns2socks-rust:dns2socks-rust,\
-            trojan:trojan,\
             luci-app-ssr-plus:luci-app-ssr-plus"
             
           # 同步immortalwrt/homeproxy
