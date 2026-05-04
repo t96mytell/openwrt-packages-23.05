@@ -4,7 +4,7 @@ LUCI_TITLE:=luci-app-ssr-plus
 LUCI_PKGARCH:=all
 PKG_NAME:=luci-app-ssr-plus
 PKG_VERSION:=193
-PKG_RELEASE:=3
+PKG_RELEASE:=8
 
 PKG_CONFIG_DEPENDS:= \
 	CONFIG_PACKAGE_$(PKG_NAME)_Iptables_Transparent_Proxy \
@@ -19,7 +19,6 @@ PKG_CONFIG_DEPENDS:= \
 	CONFIG_PACKAGE_$(PKG_NAME)_INCLUDE_Kcptun \
 	CONFIG_PACKAGE_$(PKG_NAME)_INCLUDE_NaiveProxy \
 	CONFIG_PACKAGE_$(PKG_NAME)_INCLUDE_Shadowsocks_NONE_Client \
-	CONFIG_PACKAGE_$(PKG_NAME)_INCLUDE_Shadowsocks_Mihomo_Client \
 	CONFIG_PACKAGE_$(PKG_NAME)_INCLUDE_Shadowsocks_NONE_Server \
 	CONFIG_PACKAGE_$(PKG_NAME)_INCLUDE_Shadowsocks_Rust_Server \
 	CONFIG_PACKAGE_$(PKG_NAME)_INCLUDE_Shadowsocks_Simple_Obfs \
@@ -31,13 +30,12 @@ LUCI_TITLE:=SS/SSR/V2Ray/Trojan/NaiveProxy/Tuic/ShadowTLS/Hysteria/Socks5/Clash 
 LUCI_PKGARCH:=all
 LUCI_DEPENDS:= \
 	+libuci-lua +lua +luci-compat +coreutils +coreutils-base64 +dns2tcp +dnsmasq-full \
-	+jq +ip-full +lua-neturl +libuci-lua +microsocks +ipt2socks \
+	+jq +ip-full +lua-neturl +libuci-lua +microsocks +ipt2socks +lyaml \
 	+resolveip +curl +nping +unzip +xz-utils \
 	+PACKAGE_$(PKG_NAME)_INCLUDE_MosDNS:mosdns \
 	+PACKAGE_$(PKG_NAME)_INCLUDE_Shadow_TLS:shadow-tls \
 	+PACKAGE_$(PKG_NAME)_INCLUDE_Kcptun:kcptun-client \
 	+PACKAGE_$(PKG_NAME)_INCLUDE_NaiveProxy:naiveproxy \
-	+PACKAGE_$(PKG_NAME)_INCLUDE_Shadowsocks_Mihomo_Client:mihomo \
 	+PACKAGE_$(PKG_NAME)_INCLUDE_Shadowsocks_Rust_Client:shadowsocks-rust-sslocal \
 	+PACKAGE_$(PKG_NAME)_INCLUDE_Shadowsocks_Rust_Server:shadowsocks-rust-ssserver \
 	+PACKAGE_$(PKG_NAME)_INCLUDE_Shadowsocks_Simple_Obfs:simple-obfs-client \
@@ -77,18 +75,14 @@ endchoice
 
 choice
 	prompt "Shadowsocks Client Selection"
-	default PACKAGE_$(PKG_NAME)_INCLUDE_Shadowsocks_Mihomo_Client if aarch64||arm||i386||loongarch64||riscv64||x86_64
-	default PACKAGE_$(PKG_NAME)_INCLUDE_Shadowsocks_Rust_Client if ! (aarch64||arm||i386||loongarch64||riscv64||x86_64)
+	default PACKAGE_$(PKG_NAME)_INCLUDE_Shadowsocks_Rust_Client if (aarch64||arm||i386||loongarch64||riscv64||x86_64)
 	default PACKAGE_$(PKG_NAME)_INCLUDE_Shadowsocks_NONE_Client
 
 	config PACKAGE_$(PKG_NAME)_INCLUDE_Shadowsocks_NONE_Client
 	bool "None"
 
-	config PACKAGE_$(PKG_NAME)_INCLUDE_Shadowsocks_Mihomo_Client
-	bool "Mihomo"
-
 	config PACKAGE_$(PKG_NAME)_INCLUDE_Shadowsocks_Rust_Client
-	bool "Shadowsocks-rust"
+	bool "Shadowsocks Rust"
 endchoice
 
 choice
@@ -99,7 +93,7 @@ choice
 	bool "None"
 
 	config PACKAGE_$(PKG_NAME)_INCLUDE_Shadowsocks_Rust_Server
-	bool "Shadowsocks-rust"
+	bool "Shadowsocks Rust"
 endchoice
 
 choice
@@ -120,14 +114,13 @@ config PACKAGE_$(PKG_NAME)_INCLUDE_MosDNS
 	default y if aarch64||arm||i386||x86_64
 
 config PACKAGE_$(PKG_NAME)_INCLUDE_Http_Proxy
-	bool "Include HTTP Proxy"
+	bool "Include HTTP(S) Proxy Server"
 	select PACKAGE_3proxy
 	default n
 
 config PACKAGE_$(PKG_NAME)_INCLUDE_Mihomo
 	bool "Include Mihomo (Clash Support)"
 	select PACKAGE_mihomo
-	select PACKAGE_lyaml
 	depends on aarch64||arm||i386||loongarch64||riscv64||x86_64
 	default y if aarch64||arm||i386||loongarch64||riscv64||x86_64
 
@@ -155,7 +148,7 @@ config PACKAGE_$(PKG_NAME)_INCLUDE_NaiveProxy
 
 config PACKAGE_$(PKG_NAME)_INCLUDE_Shadowsocks_Simple_Obfs
 	bool "Include Shadowsocks Simple Obfs Plugin"
-	default n
+	default y if (aarch64||arm||i386||loongarch64||riscv64||x86_64)
 
 config PACKAGE_$(PKG_NAME)_INCLUDE_Shadowsocks_V2ray_Plugin
 	bool "Include Shadowsocks V2ray Plugin"
